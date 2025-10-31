@@ -1,78 +1,57 @@
-// src/app/admin/dashboard/page.tsx
+
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/app/api/auth/NextAuthConfig";
+import Link from "next/link";
+import { CardStats } from "../CardStats";
 
 export default async function AdminDashboardPage() {
-  // Get the current session (server-side)
   const session = await getServerSession(authOptions);
 
-  // If no session, redirect to login
-  if (!session) {
-    redirect("/login");
-  }
+  if (!session) redirect("/login");
+  if (session.user.role !== "ADMIN") redirect("/admin/unauthorized");
 
-  // If user is not an ADMIN, redirect to unauthorized
-  if (session.user.role !== "ADMIN") {
-    redirect("/unauthorized");
-  }
-
-  // Display Admin Dashboard content
   return (
-    <main className="min-h-screen bg-gray-50 p-10">
-      <div className="max-w-5xl mx-auto bg-white shadow-lg rounded-2xl p-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">
-          🧭 Admin Dashboard
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          Bienvenue, {session.user.name || "Admin Global"}
         </h1>
-
-        <div className="space-y-3 text-gray-700">
-          <p>
-            Welcome, <span className="font-semibold">{session.user.email}</span>!
-          </p>
-          <p>Role: <span className="font-semibold text-blue-600">{session.user.role}</span></p>
-          <p>
-            This is your administrative dashboard. From here, you can manage
-            users, doctors, and clinic data.
-          </p>
-        </div>
-
-        <div className="mt-8">
-          <div className="grid grid-cols-2 gap-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-blue-700 mb-2">
-                👨‍⚕️ Manage Doctors
-              </h2>
-              <p className="text-sm text-gray-600">
-                Add, update, or remove medical staff records.
-              </p>
-            </div>
-            <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-green-700 mb-2">
-                🧾 Manage Patients
-              </h2>
-              <p className="text-sm text-gray-600">
-                View and manage patient accounts and medical sheets.
-              </p>
-            </div>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-yellow-700 mb-2">
-                🏥 Clinic Overview
-              </h2>
-              <p className="text-sm text-gray-600">
-                Monitor clinic statistics, performance, and staff activity.
-              </p>
-            </div>
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-red-700 mb-2">
-                ⚙️ Settings
-              </h2>
-              <p className="text-sm text-gray-600">
-                Configure system preferences and manage admin privileges.
-              </p>
-            </div>
-          </div>
-        </div>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          Gérez votre réseau de cliniques et suivez les performances.
+        </p>
       </div>
-    </main>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <CardStats title="Cliniques" value="12" icon="building" color="blue" trend="+2" />
+        <CardStats title="Managers" value="15" icon="users" color="green" trend="+3" />
+        <CardStats title="Diagnostics IA" value="1,284" icon="brain" color="purple" trend="+18%" />
+        <CardStats title="Utilisateurs" value="342" icon="user-check" color="yellow" trend="+5%" />
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Link href="/admin/clinics" className="block">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white hover:shadow-xl transition">
+            <h2 className="text-xl font-bold mb-2">Créer une Clinique</h2>
+            <p className="text-blue-100 mb-4">Ajoutez une nouvelle clinique et attribuez un manager.</p>
+            <span className="inline-block bg-white text-blue-600 px-5 py-2 rounded-lg font-medium">
+              Gérer les cliniques
+            </span>
+          </div>
+        </Link>
+
+        <Link href="/admin/users" className="block">
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white hover:shadow-xl transition">
+            <h2 className="text-xl font-bold mb-2">Gérer les Utilisateurs</h2>
+            <p className="text-purple-100 mb-4">Docteurs, réceptionnistes, patients.</p>
+            <span className="inline-block bg-white text-purple-600 px-5 py-2 rounded-lg font-medium">
+              Voir les utilisateurs
+            </span>
+          </div>
+        </Link>
+      </div>
+    </div>
   );
 }
