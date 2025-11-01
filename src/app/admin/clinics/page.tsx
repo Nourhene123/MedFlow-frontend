@@ -7,9 +7,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { Search, Plus, Edit, Trash2, Building2, Phone, Mail, MapPin, X, Copy } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Building2, Phone, Mail, MapPin, X, Copy, User } from 'lucide-react';
 
-// === SCHEMA ZOD (sans tenant_id) ===
 const clinicSchema = z.object({
   name: z.string().min(1, 'Nom requis'),
   address: z.string().min(1, 'Adresse requise'),
@@ -27,9 +26,13 @@ interface Clinic {
   phone: string;
   email: string;
   created_at: string;
+  admins: {
+    id: number;
+    firstname: string;
+    lastname: string;
+  }[];
 }
 
-// BASE URL
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/clinique/';
 
 const fetcher = (url: string) =>
@@ -384,6 +387,24 @@ function ClinicCard({ clinic, onEdit, onDelete, onCopy }: { clinic: Clinic; onEd
               </a>
             </div>
           )}
+
+          <div className="flex items-start gap-2.5 text-sm">
+            <User className="w-4.5 h-4.5 text-indigo-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium text-gray-700 dark:text-gray-200">Managers :</p>
+              {clinic.admins && clinic.admins.length > 0 ? (
+                <ul className="list-disc pl-4 text-gray-600 dark:text-gray-300 mt-1 space-y-1">
+                  {clinic.admins.map((admin) => (
+                    <li key={admin.id} className="text-sm">
+                      {admin.firstname} {admin.lastname}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400 italic">Aucun manager assigné</p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-xs">
@@ -428,4 +449,4 @@ function SkeletonCard() {
       </div>
     </div>
   );
-}
+}  
