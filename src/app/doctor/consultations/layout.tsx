@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -6,29 +7,33 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  Building2,
-  Users,
-  UserCog,
-  Brain,
+  Calendar,
+  FileText,
+  Activity,
   Settings,
   Menu,
   X,
   LogOut,
   ChevronRight,
+  Stethoscope,
+  UserPlus,
+  UserCheck,
 } from 'lucide-react';
 
 const menuItems = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/clinics', label: 'Cliniques', icon: Building2 },
-  { href: '/admin/managers', label: 'Managers', icon: UserCog },
+  { href: '/doctor/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/doctor/consultations', label: 'Consultations', icon: Calendar },
+  { href: '/doctor/ordonnances', label: 'Ordonnances', icon: FileText },
+  { href: "/doctor/patients", label: "Patients", icon: UserPlus },
+  { href: '/ddoctor/traitements', label: 'Traitements', icon: Activity },
 ];
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function ManagerLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex">
       {/* === SIDEBAR === */}
       <motion.aside
         initial={{ x: -300 }}
@@ -42,11 +47,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
+              <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
                 M
               </div>
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-                MediSaaS
+                MediManager
               </h2>
             </div>
             <button
@@ -71,7 +76,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 onClick={() => setSidebarOpen(false)}
                 className={`group flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   isActive
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                    ? 'bg-gradient-to-r from-teal-600 to-teal-700 text-white shadow-lg'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
@@ -122,14 +127,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex items-center gap-4 ml-auto">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Admin Global
+                  Manager
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  admin@medisaas.com
+                  manager@clinic.com
                 </p>
               </div>
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                A
+              <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold">
+                M
               </div>
             </div>
           </div>

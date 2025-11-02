@@ -26,8 +26,6 @@ export default async function AdminDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <CardStats title="Cliniques" value="12" icon="building" color="blue" trend="+2" />
         <CardStats title="Managers" value="15" icon="users" color="green" trend="+3" />
-        <CardStats title="Diagnostics IA" value="1,284" icon="brain" color="purple" trend="+18%" />
-        <CardStats title="Utilisateurs" value="342" icon="user-check" color="yellow" trend="+5%" />
       </div>
 
       {/* Quick Actions */}
@@ -42,15 +40,7 @@ export default async function AdminDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/admin/users" className="block">
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white hover:shadow-xl transition">
-            <h2 className="text-xl font-bold mb-2">Gérer les Utilisateurs</h2>
-            <p className="text-purple-100 mb-4">Docteurs, réceptionnistes, patients.</p>
-            <span className="inline-block bg-white text-purple-600 px-5 py-2 rounded-lg font-medium">
-              Voir les utilisateurs
-            </span>
-          </div>
-        </Link>
+       
       </div>
     </div>
   );

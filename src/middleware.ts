@@ -33,6 +33,7 @@ export const config = {
     "/",
     "/admin/:path*",
     "/doctor/:path*",
+    "/manager/:path*",
     "/receptionist/:path*",
     "/dashboard",
   ],
