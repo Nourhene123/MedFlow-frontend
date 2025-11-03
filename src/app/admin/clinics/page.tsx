@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState } from 'react';
@@ -8,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { Search, Plus, Edit, Trash2, Building2, Phone, Mail, MapPin, X, Copy, User } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 
 const clinicSchema = z.object({
   name: z.string().min(1, 'Nom requis'),
@@ -26,32 +28,40 @@ interface Clinic {
   phone: string;
   email: string;
   created_at: string;
-  admins: {
+  managers: {
     id: number;
     firstname: string;
     lastname: string;
   }[];
 }
-
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/clinique/';
-
-const fetcher = (url: string) =>
-  fetch(url, {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-      'Content-Type': 'application/json',
-    },
-  }).then((res) => {
+const useClinics = (accessToken?: string) => {
+  const fetcher = async (url: string) => {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
     if (!res.ok) throw new Error('Erreur de chargement');
-    return res.json();
-  });
+    const data = await res.json(); // <-- parse JSON here
+    console.log('data', data);   
+    return data;
+  };
+
+  
+  const { data, error, isLoading } = useSWR<Clinic[]>(accessToken ? `${API_BASE}list/` : null, fetcher);
+  return { data, error, isLoading };
+};
 
 export default function ClinicsPage() {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Clinic | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const { data: session } = useSession();
+  const accessToken = session?.accessToken;
 
-  const { data: clinics = [], error, isLoading } = useSWR<Clinic[]>(`${API_BASE}list/`, fetcher);
+  const { data: clinics = [], error, isLoading } = useClinics(accessToken);
 
   const {
     register,
@@ -74,7 +84,7 @@ export default function ClinicsPage() {
       const res = await fetch(url, {
         method,
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${session?.accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data), // tenant_id NON envoyé
@@ -104,7 +114,7 @@ export default function ClinicsPage() {
     try {
       await fetch(`${API_BASE}${id}/delete/`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       toast.success('Clinique supprimée');
       mutate(`${API_BASE}list/`);
@@ -392,9 +402,9 @@ function ClinicCard({ clinic, onEdit, onDelete, onCopy }: { clinic: Clinic; onEd
             <User className="w-4.5 h-4.5 text-indigo-500 mt-0.5 flex-shrink-0" />
             <div>
               <p className="font-medium text-gray-700 dark:text-gray-200">Managers :</p>
-              {clinic.admins && clinic.admins.length > 0 ? (
+              {clinic.managers && clinic.managers.length > 0 ? (
                 <ul className="list-disc pl-4 text-gray-600 dark:text-gray-300 mt-1 space-y-1">
-                  {clinic.admins.map((admin) => (
+                  {clinic.managers.map((admin) => (
                     <li key={admin.id} className="text-sm">
                       {admin.firstname} {admin.lastname}
                     </li>

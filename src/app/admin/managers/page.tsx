@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-
+import { useSession } from "next-auth/react";
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useSWR, { mutate } from 'swr';
@@ -51,10 +52,10 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 const ACCOUNTS_API = `${API_BASE}/accounts/`;
 const CLINIQUE_API = `${API_BASE}/clinique/`;
 
-const fetcher = (url: string) =>
+const fetcher = (url: string, token: any) =>
   fetch(url, {
     headers: {
-      Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
   }).then((res) => {
@@ -69,15 +70,22 @@ export default function ManagersPage() {
   const [selectedManager, setSelectedManager] = useState<User | null>(null);
   const [selectedClinics, setSelectedClinics] = useState<number[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
+  const { data: session } = useSession();
+  const accessToken = session?.accessToken;
 
   // Data fetching
   const {
     data: managers = [],
     isLoading: loadingManagers,
-  } = useSWR<User[]>(`${ACCOUNTS_API}users/?user_type=MANAGER`, fetcher);
+  } = useSWR<User[]>(
+    accessToken ? [`http://localhost:8000/api/accounts/users/by-type/MANAGER`, accessToken] : null,
+    ([url, token]) => fetcher(url, token)
+  );
 
-  const { data: clinics = [] } = useSWR<Clinic[]>(`${CLINIQUE_API}list/`, fetcher);
-
+const { data: clinics = [] } = useSWR<Clinic[]>(
+  accessToken ? [`${CLINIQUE_API}list/`, accessToken] : null,
+  ([url, token]) => fetcher(url, token)
+);
   // Pre-populate selectedClinics
   useEffect(() => {
     if (selectedManager && clinics.length > 0) {
@@ -109,7 +117,7 @@ export default function ManagersPage() {
       const res = await fetch(`${ACCOUNTS_API}create-manager/`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ ...data, user_type: 'MANAGER' }),
@@ -135,7 +143,7 @@ export default function ManagersPage() {
     try {
       const res = await fetch(`${ACCOUNTS_API}users/${id}/`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       if (!res.ok) throw new Error('Échec suppression');
@@ -154,7 +162,7 @@ export default function ManagersPage() {
       const res = await fetch(`${CLINIQUE_API}managers/${selectedManager.id}/assign-clinics/`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ clinic_ids: selectedClinics }),
