@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-
+import { signIn } from 'next-auth/react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, Stethoscope } from 'lucide-react';
+import { getSession } from 'next-auth/react'
 
 const loginSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -19,7 +21,7 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof loginSchema>>({
@@ -29,44 +31,34 @@ export default function LoginPage() {
 
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setLoading(true);
-    setMessage('');
+    setMessage(null);
 
     try {
-      const res = await fetch('http://localhost:8000/api/accounts/login/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
+      const res = await signIn('credentials', {
+        email: values.email,
+        password: values.password,
+        redirect: false,
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.detail || data.email?.[0] || 'Identifiants invalides');
+      if (res?.ok) {
+        setMessage({ type: 'success', text: 'Connecté! Veuillez patienter...' });
+        const session = await getSession();  
+        console.log('session data :',session)
+        const role = session?.user?.role;
+        if (role === 'ADMIN') {
+          console.log("role",role)
+          router.push('/admin/dashboard');
+        }
+        else if (role === 'DOCTOR') router.push('/doctor/dashboard');
+        else if (role === 'MANAGER') router.push('/manager/dashboard');
+        else if (role === 'RECEPTIONIST') router.push('/receptionist/dashboard');
+        else if (role === 'PATIENT') router.push('/patient/dashboard');
+        else router.push('/dashboard');
+      }else{
+        setMessage({ type: 'error', text: 'Identifiants invalides. Vérifiez votre email et mot de passe.' });
       }
-
-      // SAUVEGARDE DU TOKEN
-      localStorage.setItem('access_token', data.access);
-      localStorage.setItem('refresh_token', data.refresh);
-
-      // DÉCODAGE DU RÔLE
-      const payload = JSON.parse(atob(data.access.split('.')[1]));
-      const role = payload.user_type?.toUpperCase() || 'PATIENT';
-      localStorage.setItem('user_role', role);
-
-      console.log('Connexion réussie ! Rôle:', role);
-
-      // REDIRECTION
-      const routes: Record<string, string> = {
-        ADMIN: '/admin/dashboard',
-        MANAGER: '/manager/dashboard',
-        DOCTOR: '/doctor/dashboard',
-        RECEPTIONIST: '/receptionist/dashboard',
-        PATIENT: '/patient/dashboard',
-      };
-      router.push(routes[role] || '/dashboard');
-
     } catch (error: any) {
-      setMessage(`Erreur : ${error.message}`);
+      console.error(error)
+      
     } finally {
       setLoading(false);
     }
@@ -156,8 +148,12 @@ export default function LoginPage() {
           </Form>
 
           {message && (
-            <div className={`p-4 rounded-xl border text-center ${message.includes('succès') ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
-              <span className="font-medium">{message}</span>
+            <div className={`p-4 rounded-xl border text-center ${
+              message.type === 'success' 
+                ? 'bg-green-50 border-green-200 text-green-700' 
+                : 'bg-red-50 border-red-200 text-red-700'
+            }`}>
+              <span className="font-medium">{message.text}</span>
             </div>
           )}
         </CardContent>

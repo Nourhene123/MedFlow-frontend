@@ -13,7 +13,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         try {
-          console.log('🔐 Attempting login...');
+          console.log('Attempting login...');
           if (!credentials?.email || !credentials?.password) return null;
 
           const BACKEND_URL = process.env.BACKEND_URL;
