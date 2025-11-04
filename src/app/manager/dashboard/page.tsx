@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Stethoscope, Users, Activity, Building } from "lucide-react";
 import { CardStats } from "@/components/manager/CardStats";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE = process.env.BACKEND || 'http://localhost:8000/api/';
 
 const fetcher = (url: string) =>
   fetch(url, {
@@ -25,14 +25,14 @@ const fetcher = (url: string) =>
 export default function ManagerDashboard() {
   // === 1. Utilisateur connecté (Manager) ===
   const { data: currentUser, isLoading: loadingUser } = useSWR(
-    `${API_BASE}/accounts/current-user/`,
+    `${API_BASE}accounts/current-user/`,
     fetcher
   );
   const managerId = currentUser?.id;
 
   // === 2. Cliniques du manager ===
   const { data: clinics = [], isLoading: loadingClinics } = useSWR(
-    managerId ? `${API_BASE}/clinique/managers/${managerId}/clinics/` : null,
+    managerId ? `${API_BASE}clinique/managers/${managerId}/clinics/` : null,
     fetcher
   );
   const managerClinic = clinics[0]; // Un manager = une clinique
@@ -40,7 +40,7 @@ export default function ManagerDashboard() {
   // === 3. Médecins de la clinique ===
   const { data: doctors = [], isLoading: loadingDoctors } = useSWR(
     managerClinic
-      ? `${API_BASE}/accounts/list-medecins/?clinique=${managerClinic.id}`
+      ? `${API_BASE}accounts/list-medecins/?clinique=${managerClinic.id}`
       : null,
     fetcher
   );
@@ -48,7 +48,7 @@ export default function ManagerDashboard() {
   // === 4. Patients de la clinique ===
   const { data: patients = [], isLoading: loadingPatients } = useSWR(
     managerClinic
-      ? `${API_BASE}/accounts/patients/?clinique=${managerClinic.id}`
+      ? `${API_BASE}accounts/patients/?clinique=${managerClinic.id}`
       : null,
     fetcher
   );

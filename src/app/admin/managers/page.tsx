@@ -48,9 +48,9 @@ interface Clinic {
   admins: User[];
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-const ACCOUNTS_API = `${API_BASE}/accounts/`;
-const CLINIQUE_API = `${API_BASE}/clinique/`;
+const API_BASE = process.env.BACKEND_URL || 'http://localhost:8000/api/';
+const ACCOUNTS_API = `${API_BASE}accounts/`;
+const CLINIQUE_API = `${API_BASE}clinique/`;
 
 const fetcher = (url: string, token: any) =>
   fetch(url, {
@@ -78,7 +78,7 @@ export default function ManagersPage() {
     data: managers = [],
     isLoading: loadingManagers,
   } = useSWR<User[]>(
-    accessToken ? [`http://localhost:8000/api/accounts/users/by-type/MANAGER`, accessToken] : null,
+    accessToken ? [`${ACCOUNTS_API}users/by-type/MANAGER`, accessToken] : null,
     ([url, token]) => fetcher(url, token)
   );
 

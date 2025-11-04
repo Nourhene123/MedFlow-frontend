@@ -34,7 +34,7 @@ interface Clinic {
     lastname: string;
   }[];
 }
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/clinique/';
+const API_BASE = process.env.BACKEND_URL || 'http://localhost:8000/api/';
 const useClinics = (accessToken?: string) => {
   const fetcher = async (url: string) => {
     const res = await fetch(url, {
@@ -50,7 +50,7 @@ const useClinics = (accessToken?: string) => {
   };
 
   
-  const { data, error, isLoading } = useSWR<Clinic[]>(accessToken ? `${API_BASE}list/` : null, fetcher);
+  const { data, error, isLoading } = useSWR<Clinic[]>(accessToken ? `${API_BASE}clinique/list/` : null, fetcher);
   return { data, error, isLoading };
 };
 
@@ -77,7 +77,7 @@ export default function ClinicsPage() {
   );
 
   const onSubmit = async (data: ClinicForm) => {
-    const url = editing ? `${API_BASE}${editing.id}/update/` : `${API_BASE}create-clinique/`;
+    const url = editing ? `${API_BASE}clinique/${editing.id}/update/` : `${API_BASE}clinique/create-clinique/`;
     const method = editing ? 'PUT' : 'POST';
 
     try {
@@ -96,7 +96,7 @@ export default function ClinicsPage() {
       }
 
       toast.success(editing ? 'Clinique mise à jour' : 'Clinique créée avec succès');
-      mutate(`${API_BASE}list/`);
+      mutate(`${API_BASE}clinique/list/`);
       resetForm();
     } catch (err: any) {
       toast.error(err.message);
@@ -112,12 +112,12 @@ export default function ClinicsPage() {
   const handleDelete = async (id: number) => {
     if (!confirm('Voulez-vous vraiment supprimer cette clinique ?')) return;
     try {
-      await fetch(`${API_BASE}${id}/delete/`, {
+      await fetch(`${API_BASE}clinique/${id}/delete/`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       toast.success('Clinique supprimée');
-      mutate(`${API_BASE}list/`);
+      mutate(`${API_BASE}clinique/list/`);
     } catch {
       toast.error('Échec de la suppression');
     }

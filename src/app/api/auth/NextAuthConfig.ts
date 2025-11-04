@@ -17,7 +17,7 @@ export const authOptions: NextAuthOptions = {
           if (!credentials?.email || !credentials?.password) return null;
 
           const BACKEND_URL = process.env.BACKEND_URL;
-          const response = await fetch(`${BACKEND_URL}/api/accounts/login/`, {
+          const response = await fetch(`${BACKEND_URL}accounts/login/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

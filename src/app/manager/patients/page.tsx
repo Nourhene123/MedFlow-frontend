@@ -11,9 +11,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 // === CONFIG ===
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-const PATIENT_LIST_API = `${API_BASE}/accounts/patients/`;
-const PATIENT_CREATE_API = `${API_BASE}/accounts/create-patient/`;
+const API_BASE = process.env.BACKEND_URL || 'http://localhost:8000/api/';
+const PATIENT_LIST_API = `${API_BASE}accounts/patients/`;
+const PATIENT_CREATE_API = `${API_BASE}accounts/create-patient/`;
 
 // === FETCHER ===
 const fetcher = (url: string) =>
@@ -90,7 +90,7 @@ export default function PatientsPage() {
   }, []);
 
   // === CLINIQUES DU MANAGER ===
-  const CLINICS_API = managerId ? `${API_BASE}/clinique/managers/${managerId}/clinics/` : null;
+  const CLINICS_API = managerId ? `${API_BASE}clinique/managers/${managerId}/clinics/` : null;
   const { data: cliniques = [], isLoading: cliniquesLoading, error: cliniquesError } = useSWR<Clinic[]>(
     CLINICS_API,
     fetcher,
@@ -167,7 +167,7 @@ export default function PatientsPage() {
     }
 
     const url = editingPatient
-      ? `${API_BASE}/accounts/patients/${editingPatient.id}/`
+      ? `${API_BASE}accounts/patients/${editingPatient.id}/`
       : PATIENT_CREATE_API;
 
     const method = editingPatient ? "PATCH" : "POST";
@@ -206,7 +206,7 @@ export default function PatientsPage() {
     if (!confirm("Supprimer ce patient ?")) return;
 
     try {
-      const res = await fetch(`${API_BASE}/accounts/patients/${id}/delete/`, {
+      const res = await fetch(`${API_BASE}accounts/patients/${id}/delete/`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from "react";
@@ -11,11 +12,11 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 // === CONFIG ===
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-const RECEPTIONNISTE_LIST_API = `${API_BASE}/accounts/receptionnistes/`;
-const RECEPTIONNISTE_CREATE_API = `${API_BASE}/accounts/create-receptionniste/`;
-const CURRENT_USER_API = `${API_BASE}/accounts/current-user/`;
-const CLINICS_API = (id: number) => `${API_BASE}/clinique/managers/${id}/clinics/`;
+const API_BASE = process.env.BACKEND_URL || 'http://localhost:8000/api/';
+const RECEPTIONNISTE_LIST_API = `${API_BASE}accounts/receptionnistes/`;
+const RECEPTIONNISTE_CREATE_API = `${API_BASE}accounts/create-receptionniste/`;
+const CURRENT_USER_API = `${API_BASE}accounts/current-user/`;
+const CLINICS_API = (id: number) => `${API_BASE}clinique/managers/${id}/clinics/`;
 
 // === FETCHER ===
 const fetcher = (url: string) =>
@@ -155,7 +156,7 @@ export default function ReceptionnistesPage() {
   }
 
   const url = editingRecep
-    ? `${API_BASE}/accounts/receptionnistes/${editingRecep.id}/`
+    ? `${API_BASE}accounts/receptionnistes/${editingRecep.id}/`
     : RECEPTIONNISTE_CREATE_API;
 
   const method = editingRecep ? "PATCH" : "POST";
@@ -206,7 +207,7 @@ export default function ReceptionnistesPage() {
     if (!confirm("Supprimer cette réceptionniste ?")) return;
 
     try {
-      const res = await fetch(`${API_BASE}/accounts/receptionnistes/${id}/delete/`, {
+      const res = await fetch(`${API_BASE}accounts/receptionnistes/${id}/delete/`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,

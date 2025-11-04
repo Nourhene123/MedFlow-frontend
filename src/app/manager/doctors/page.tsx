@@ -31,10 +31,10 @@ type Clinique = {
 };
 
 // === CONFIG ===
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-const DOCTOR_LIST_API   = `${API_BASE}/accounts/list-medecins/`;
-const DOCTOR_CREATE_API = `${API_BASE}/accounts/create-medecin/`;
-const CURRENT_USER_API  = `${API_BASE}/accounts/current-user/`;
+const API_BASE = process.env.BACKEND_URL || 'http://localhost:8000/api/';
+const DOCTOR_LIST_API   = `${API_BASE}accounts/list-medecins/`;
+const DOCTOR_CREATE_API = `${API_BASE}accounts/create-medecin/`;
+const CURRENT_USER_API  = `${API_BASE}accounts/current-user/`;
 
 // === FETCHER ===
 const fetcher = async (url: string): Promise<any> => {
@@ -90,7 +90,7 @@ export default function DoctorsPage() {
   // Construit l'URL dynamique : /api/clinique/managers/<id>/clinics/
   const managerId = currentUser?.id;
   const CLINICS_API = managerId 
-    ? `${API_BASE}/clinique/managers/${managerId}/clinics/`
+    ? `${API_BASE}clinique/managers/${managerId}/clinics/`
     : null;
 
   // Récupère les cliniques du manager
@@ -208,7 +208,7 @@ export default function DoctorsPage() {
     };
 
     try {
-      const res = await fetch(`${API_BASE}/accounts/medecins/${editingId}/`, {
+      const res = await fetch(`${API_BASE}accounts/medecins/${editingId}/`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -236,7 +236,7 @@ export default function DoctorsPage() {
     if (!confirm("Supprimer ce médecin ?")) return;
 
     try {
-      await fetch(`${API_BASE}/accounts/medecins/${id}/delete/`, {
+      await fetch(`${API_BASE}accounts/medecins/${id}/delete/`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
       });
