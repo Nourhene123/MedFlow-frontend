@@ -35,8 +35,11 @@ export const authOptions: NextAuthOptions = {
             id: data.user.id?.toString() || data.user.email,
             email: data.user.email,
             name: data.user.username,
+            firstname: data.user.firstname,
+            lastname: data.user.lastname,
             role: data.user.user_type,
             accessToken: data.access,
+            refreshToken: data.refresh,
           };
         } catch (error) {
           console.error('Authorize error:', error);
@@ -48,17 +51,25 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }: { token: JWT; user?: any }) {
       if (user) {
-        token.role = user.role;
-        token.accessToken = user.accessToken;
-        token.id = user.id;
-      }
+      token.id = user.id;
+      token.email = user.email;
+      token.firstname = user.firstname;
+      token.lastname = user.lastname;
+      token.role = user.role;
+      token.accessToken = user.accessToken;
+      token.refreshToken = user.refreshToken;
+    }
       return token;
     },
     async session({ session, token }: { session: any; token: JWT }) {
       session.user = session.user ?? {};
-      session.user.role = token.role;
       session.user.id = token.id;
+      session.user.email = token.email;
+      session.user.firstname = token.firstname;
+      session.user.lastname = token.lastname;
+      session.user.role = token.role;
       session.accessToken = token.accessToken;
+      session.refreshToken = token.refreshToken;
       return session;
     },
   },

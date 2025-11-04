@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronRight,
 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 
 const menuItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -26,6 +27,7 @@ const menuItems = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const {data : session } = useSession();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex">
@@ -122,10 +124,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex items-center gap-4 ml-auto">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Admin Global
+                  {session?.user.firstname} {session?.user.lastname}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  admin@medisaas.com
+                  {session?.user.email}
                 </p>
               </div>
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
