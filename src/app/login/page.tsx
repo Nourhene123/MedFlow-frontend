@@ -97,7 +97,7 @@ export default function LoginPage() {
                     <FormControl>
                       <div className="relative group">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                        <Input type="email" placeholder="admin@medflow.com" className="pl-10 h-11" {...field} />
+                        <Input type="email" placeholder="email@mf.com" className="pl-10 h-11" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage className="text-red-500 text-sm" />

@@ -1,11 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState } from "react";
 import useSWR from "swr";
 import { Plus, Edit2, Trash2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 export default function TraitementsPage() {
+  const { data: session } = useSession();
   const { data: traitements = [], isLoading, mutate } = useSWR("/medical/traitements/list/");
+
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ name: "", description: "", cost: 0 });
@@ -16,23 +20,23 @@ export default function TraitementsPage() {
     await fetch(url, {
       method,
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        Authorization: `Bearer ${session?.accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(form),
     });
     setShowForm(false);
     setEditing(null);
-    mutate();
+    mutate("/medical/traitements/list/");
   };
 
   const deleteTraitement = async (id: number) => {
     if (!confirm("Supprimer ce traitement ?")) return;
     await fetch(`/api/medical/traitements/${id}/delete/`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
+      headers: { Authorization: `Bearer ${session?.accessToken}` },
     });
-    mutate();
+    mutate("/medical/traitements/list/");
   };
 
   return (

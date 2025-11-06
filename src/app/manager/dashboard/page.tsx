@@ -4,25 +4,31 @@ import useSWR from "swr";
 import Link from "next/link";
 import { Stethoscope, Users, Activity, Building } from "lucide-react";
 import { CardStats } from "@/components/manager/CardStats";
+import { useSession } from "next-auth/react";
+
 
 const API_BASE = process.env.BACKEND || 'http://localhost:8000/api/';
 
-const fetcher = (url: string) =>
-  fetch(url, {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-      "Content-Type": "application/json",
-    },
-  }).then(async (res) => {
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || "Erreur");
-    }
-    return res.json();
-  });
+
 
 // === PAGE ===
 export default function ManagerDashboard() {
+  const { data: session } = useSession();
+
+  const fetcher = async (url: string) => {
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${session?.accessToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Erreur");
+  }
+  return res.json();
+  };
+
   // === 1. Utilisateur connecté (Manager) ===
   const { data: currentUser, isLoading: loadingUser } = useSWR(
     `${API_BASE}accounts/current-user/`,

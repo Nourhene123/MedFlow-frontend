@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from "react";
 import useSWR from "swr";
+import { useSession } from "next-auth/react";
 import { toast } from "sonner";
-import { jwtDecode } from "jwt-decode";
 import {
   Search, User, Mail, Phone, Clock, Plus, Edit, Trash2, X,
   Building2, Shield
@@ -15,20 +15,18 @@ import { motion, AnimatePresence } from "framer-motion";
 const API_BASE = process.env.BACKEND_URL || 'http://localhost:8000/api/';
 const RECEPTIONNISTE_LIST_API = `${API_BASE}accounts/receptionnistes/`;
 const RECEPTIONNISTE_CREATE_API = `${API_BASE}accounts/create-receptionniste/`;
-const CURRENT_USER_API = `${API_BASE}accounts/current-user/`;
 const CLINICS_API = (id: number) => `${API_BASE}clinique/managers/${id}/clinics/`;
 
 // === FETCHER ===
-const fetcher = (url: string) =>
+const fetcher = (url: string, token: any) =>
   fetch(url, {
     headers: {
-      Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
   }).then(async (res) => {
     if (res.status === 401) {
       toast.error("Session expirée");
-      localStorage.removeItem("access_token");
       window.location.href = "/login";
       return [];
     }
@@ -57,54 +55,43 @@ type Clinic = {
   name: string;
 };
 
-type JWT = {
-  user_id: number;
-  user_type: string;
-};
-
 // === PAGE ===
 export default function ReceptionnistesPage() {
+  const { data: session, status } = useSession();
+  const token = session?.accessToken;
+  const role = session?.user?.role;
+  const managerId = session?.user?.id;
+
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRecep, setEditingRecep] = useState<Receptionniste | null>(null);
-  const [managerId, setManagerId] = useState<number | null>(null);
+  const [form, setForm] = useState({
+    email: "", password: "", firstname: "", lastname: "", phone: "",
+    work_shift: "", desk_number: "", clinique_id: ""
+  });
 
-  // === RÉCUPÉRER LE MANAGER ===
+  // === ACCESS CONTROL ===
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      try {
-        const decoded: JWT = jwtDecode(token);
-        if (decoded.user_type === "MANAGER") {
-          setManagerId(decoded.user_id);
-        } else {
-          toast.error("Accès refusé");
-          window.location.href = "/dashboard";
-        }
-      } catch (err) {
-        console.error("Token invalide", err);
-      }
+    if (status === "loading") return;
+    if (!session) {
+      window.location.href = "/login";
+    } else if (role !== "MANAGER") {
+      window.location.href = "/dashboard";
     }
-  }, []);
+  }, [status, session, role]);
 
   // === CLINIQUES DU MANAGER ===
   const { data: cliniques = [], isLoading: cliniquesLoading } = useSWR<Clinic[]>(
-    managerId ? CLINICS_API(managerId) : null,
-    fetcher,
+    managerId && token ? [CLINICS_API(managerId), token] : null,
+    ([url, t]) => fetcher(url, t),
     { revalidateOnFocus: false }
   );
 
   // === RÉCEPTIONNISTES ===
   const { data: receptionnistes = [], mutate: refreshRecep } = useSWR<Receptionniste[]>(
-    RECEPTIONNISTE_LIST_API,
-    fetcher
+    token ? [RECEPTIONNISTE_LIST_API, token] : null,
+    ([url, t]) => fetcher(url, t)
   );
-
-  // === FORMULAIRE ===
-  const [form, setForm] = useState({
-    email: "", password: "", firstname: "", lastname: "", phone: "",
-    work_shift: "", desk_number: "", clinique_id: ""
-  });
 
   useEffect(() => {
     if (cliniques.length === 1) {
@@ -148,60 +135,53 @@ export default function ReceptionnistesPage() {
 
   // === CREATE & UPDATE ===
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-
-  if (!form.clinique_id) {
-    toast.error("Veuillez sélectionner une clinique");
-    return;
-  }
-
-  const url = editingRecep
-    ? `${API_BASE}accounts/receptionnistes/${editingRecep.id}/`
-    : RECEPTIONNISTE_CREATE_API;
-
-  const method = editingRecep ? "PATCH" : "POST";
-
-  // FORMAT CORRECT POUR LE BACKEND
-  const payload: any = {
-    email: form.email,
-    firstname: form.firstname,
-    lastname: form.lastname,
-    phone: form.phone,
-    work_shift: form.work_shift,
-    desk_number: form.desk_number,
-    clinique_id: parseInt(form.clinique_id),  // ENVOIE COMME NOMBRE
-  };
-
-  // Mot de passe seulement à la création
-  if (!editingRecep) {
-    payload.password = form.password;
-  }
-
-  try {
-    const res = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-      },
-      body: JSON.stringify(payload),  // payload correct
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      const errorMsg = data.email?.[0] || data.clinique_id?.[0] || data.detail || "Échec";
-      toast.error(errorMsg);
+    e.preventDefault();
+    if (!form.clinique_id) {
+      toast.error("Veuillez sélectionner une clinique");
       return;
     }
 
-    toast.success(editingRecep ? "Réceptionniste mise à jour" : "Réceptionniste créée");
-    refreshRecep();
-    closeModal();
-  } catch (err) {
-    toast.error("Erreur réseau");
-  }
-};
+    const url = editingRecep
+      ? `${API_BASE}accounts/receptionnistes/${editingRecep.id}/`
+      : RECEPTIONNISTE_CREATE_API;
+
+    const method = editingRecep ? "PATCH" : "POST";
+    const payload: any = {
+      email: form.email,
+      firstname: form.firstname,
+      lastname: form.lastname,
+      phone: form.phone,
+      work_shift: form.work_shift,
+      desk_number: form.desk_number,
+      clinique_id: parseInt(form.clinique_id),
+    };
+    if (!editingRecep) payload.password = form.password;
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        const errorMsg = data.email?.[0] || data.clinique_id?.[0] || data.detail || "Échec";
+        toast.error(errorMsg);
+        return;
+      }
+
+      toast.success(editingRecep ? "Réceptionniste mise à jour" : "Réceptionniste créée");
+      refreshRecep();
+      closeModal();
+    } catch {
+      toast.error("Erreur réseau");
+    }
+  };
+
   // === DELETE ===
   const handleDelete = async (id: number) => {
     if (!confirm("Supprimer cette réceptionniste ?")) return;
@@ -210,7 +190,7 @@ export default function ReceptionnistesPage() {
       const res = await fetch(`${API_BASE}accounts/receptionnistes/${id}/delete/`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 

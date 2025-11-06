@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { FileText, Plus, Download } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 type Consultation = {
   id: number;
@@ -18,34 +19,54 @@ type Consultation = {
   };
 };
 
+// 🔹 fetcher with session token
+const fetcher = async (url: string, token?: any) => {
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error("Erreur de chargement");
+  return res.json();
+};
+
 export default function OrdonnancesPage() {
-  const { data: consultations = [], isLoading } = useSWR<Consultation[]>("/medical/consultations/list/");
+  const { data: session } = useSession();
+  const token = session?.accessToken; // or session?.user?.accessToken depending on your setup
+
+  // === Load consultations ===
+  const { data: consultations = [], isLoading } = useSWR<Consultation[]>(
+    token ? ["/medical/consultations/list/", token] : null,
+    ([url, token]) => fetcher(url, token)
+  );
+
   const [showCreate, setShowCreate] = useState(false);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
 
-  const ordonnances = consultations.filter(c => c.ordonnance_exists);
+  const ordonnances = consultations.filter((c) => c.ordonnance_exists);
 
+  // === CREATE ORDONNANCE ===
   const createOrdonnance = async () => {
-    if (!selectedConsultation) return;
+    if (!selectedConsultation || !token) return;
 
     await fetch(`/api/medical/consultations/${selectedConsultation.id}/create-ordonnance/`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ content: "Ordonnance générée automatiquement." }),
     });
 
-    // 🔹 Update SWR cache instead of reloading the page
-    mutate("/medical/consultations/list/");
-
+    // Refresh consultations
+    mutate(["/medical/consultations/list/", token]);
     setShowCreate(false);
     setSelectedConsultation(null);
   };
 
   return (
     <div className="space-y-6">
+      {/* === HEADER === */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Ordonnances</h1>
@@ -60,66 +81,62 @@ export default function OrdonnancesPage() {
         </button>
       </div>
 
+      {/* === LIST === */}
       <div className="space-y-4">
-  {(() => {
-    if (isLoading) {
-      return <p className="text-center py-8">Chargement...</p>;
-    }
-
-    if (ordonnances.length === 0) {
-      return <p className="text-center py-8 text-gray-500">Aucune ordonnance.</p>;
-    }
-
-    return ordonnances.map(c => (
-      <div
-        key={c.id}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 border border-gray-200 dark:border-gray-700"
-      >
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="font-semibold flex items-center gap-2">
-              <FileText className="w-5 h-5 text-teal-600" />
-              {c.patient_name}
-            </h3>
-            <p className="text-sm text-gray-600">Dr. {c.medecin_name}</p>
-          </div>
-          <a
-            href={c.ordonnance?.pdf_url || "#"}
-            className="flex items-center gap-1 text-teal-600 hover:text-teal-700"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Download className="w-4 h-4" />
-            PDF
-          </a>
-        </div>
-      <p className="mt-2 text-sm text-gray-600">
-        {format(new Date(c.date), "dd MMM yyyy HH:mm")}
-       </p>
+        {isLoading ? (
+          <p className="text-center py-8">Chargement...</p>
+        ) : ordonnances.length === 0 ? (
+          <p className="text-center py-8 text-gray-500">Aucune ordonnance.</p>
+        ) : (
+          ordonnances.map((c) => (
+            <div
+              key={c.id}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 border border-gray-200 dark:border-gray-700"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-teal-600" />
+                    {c.patient_name}
+                  </h3>
+                  <p className="text-sm text-gray-600">Dr. {c.medecin_name}</p>
+                </div>
+                <a
+                  href={c.ordonnance?.pdf_url || "#"}
+                  className="flex items-center gap-1 text-teal-600 hover:text-teal-700"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Download className="w-4 h-4" />
+                  PDF
+                </a>
+              </div>
+              <p className="mt-2 text-sm text-gray-600">
+                {format(new Date(c.date), "dd MMM yyyy HH:mm")}
+              </p>
+            </div>
+          ))
+        )}
       </div>
-    ));
-  })()}
-</div>
 
-
-      {/* Modal création */}
+      {/* === CREATE MODAL === */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full">
             <h2 className="text-xl font-bold mb-4">Créer une ordonnance</h2>
             <select
               value={selectedConsultation?.id || ""}
-              onChange={e =>
+              onChange={(e) =>
                 setSelectedConsultation(
-                  consultations.find(c => c.id === parseInt(e.target.value)) || null
+                  consultations.find((c) => c.id === parseInt(e.target.value)) || null
                 )
               }
               className="w-full p-3 border rounded-xl mb-4"
             >
               <option value="">Sélectionner une consultation</option>
               {consultations
-                .filter(c => !c.ordonnance_exists && c.status === "COMPLETED")
-                .map(c => (
+                .filter((c) => !c.ordonnance_exists && c.status === "COMPLETED")
+                .map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.patient_name} - {format(new Date(c.date), "dd MMM HH:mm")}
                   </option>
