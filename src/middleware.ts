@@ -6,10 +6,12 @@ export default withAuth(
     const { pathname } = req.nextUrl;
     const token = req.nextauth.token;
 
+    if (token && pathname === "/login") {
+      return NextResponse.redirect(req.url); 
+    }
     if (!token) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
-
     const role = token.role;
     if (pathname.startsWith("/admin") && role !== "ADMIN") {
       return NextResponse.redirect(new URL("/unauthorized", req.url));
@@ -18,6 +20,9 @@ export default withAuth(
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
     if (pathname.startsWith("/receptionist") && role !== "RECEPTIONIST") {
+      return NextResponse.redirect(new URL("/unauthorized", req.url));
+    }
+    if (pathname.startsWith("/manager") && role !== "MANAGER") {
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
   },

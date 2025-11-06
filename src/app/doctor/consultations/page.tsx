@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/(manager)/consultations/page.tsx
 'use client';
 
@@ -6,6 +7,7 @@ import useSWR from "swr";
 import { format } from "date-fns";
 import { Search, Calendar, Clock, User, Pill, XCircle, Plus, Edit, Trash2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
 
 type Consultation = {
   id: number;
@@ -17,10 +19,13 @@ type Consultation = {
   ordonnance_exists: boolean;
 };
 
-const fetcher = (url: string) =>
-  fetch(url, {
-    headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
-  }).then((res) => res.json());
+const fetcher = async (url: string, accessToken: any) => {
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error("Failed to fetch consultations");
+  return res.json();
+};
 
 export default function ConsultationsPage() {
   const [search, setSearch] = useState("");
@@ -28,8 +33,13 @@ export default function ConsultationsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const { data: session } = useSession();
+  const accessToken = session?.accessToken;
 
-  const { data: consultations = [], isLoading, mutate } = useSWR<Consultation[]>("/medical/consultations/list/", fetcher);
+  const { data: consultations = [], isLoading, mutate } = useSWR<Consultation[]>(
+    accessToken ? ["/medical/consultations/list/", accessToken] : null,
+    ([url, token]) => fetcher(url, token)
+  );
 
   const [form, setForm] = useState({
     patient_name: "",
@@ -50,7 +60,7 @@ export default function ConsultationsPage() {
     e.preventDefault();
     await fetch("/medical/consultations/create/", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("access_token")}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify({ ...form, duration_minutes: parseInt(form.duration_minutes) }),
     });
     mutate();
@@ -75,7 +85,7 @@ export default function ConsultationsPage() {
     if (!editingId) return;
     await fetch(`/medical/consultations/${editingId}/update/`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("access_token")}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify({ ...form, duration_minutes: parseInt(form.duration_minutes) }),
     });
     mutate();
@@ -88,7 +98,7 @@ export default function ConsultationsPage() {
     if (!confirm("Supprimer cette consultation ?")) return;
     await fetch(`/medical/consultations/${id}/delete/`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
     mutate();
   };
@@ -98,7 +108,7 @@ export default function ConsultationsPage() {
     if (!confirm("Annuler cette consultation ?")) return;
     await fetch(`/medical/consultations/${id}/cancel/`, {
       method: "PATCH",
-      headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
     mutate();
   };

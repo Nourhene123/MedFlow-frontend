@@ -1,0 +1,51 @@
+stages:
+  - build
+  - docker
+
+variables:
+  DOCKER_IMAGE: $DOCKER_USERNAME/Med-Flow-Frontend
+
+cache:
+  key: frontend-cache
+  paths:
+    - node_modules/
+    - .next/cache/
+
+# -------------------------
+# INSTALL + LINT + BUILD
+# -------------------------
+build_frontend:
+  stage: build
+  image: node:18
+  script:
+    - npm --version
+    - npm install
+    - npm run lint || true  
+    - cp .env.prod .env     
+    - npm run build
+  artifacts:
+    paths:
+      - .next/
+      - node_modules/
+      - .env
+      - public/
+  allow_failure: true
+
+# -------------------------
+# DOCKER BUILD & PUSH
+# -------------------------
+docker_deploy:
+  stage: docker
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  script:
+    - docker build -t $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA -t $DOCKER_IMAGE:latest .
+    - docker push $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker push $DOCKER_IMAGE:latest
+  #only:
+  #  - main
+  dependencies:
+    - build_frontend

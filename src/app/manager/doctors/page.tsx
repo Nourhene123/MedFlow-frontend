@@ -8,6 +8,8 @@ import {
   Building2, User, Lock, Calendar
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession, signOut } from "next-auth/react";
+
 
 // === TYPES ===
 type Doctor = {
@@ -37,33 +39,19 @@ const DOCTOR_CREATE_API = `${API_BASE}accounts/create-medecin/`;
 const CURRENT_USER_API  = `${API_BASE}accounts/current-user/`;
 
 // === FETCHER ===
-const fetcher = async (url: string): Promise<any> => {
-  const token = localStorage.getItem("access_token");
-  if (!token) {
-    toast.error("Non connecté.");
-    window.location.href = "/login";
-    return null;
-  }
-
+const makeFetcher = (token: string) => async (url: string) => {
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
   });
-
   if (res.status === 401) {
-    toast.error("Session expirée.");
-    localStorage.removeItem("access_token");
-    window.location.href = "/login";
+    toast.error("Session expirée");
+    signOut({ callbackUrl: "/login" });
     return null;
   }
-
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.detail || `Erreur ${res.status}`);
-  }
-
+  if (!res.ok) throw new Error("Erreur API");
   return res.json();
 };
 
@@ -73,7 +61,9 @@ export default function DoctorsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const { data: session, status } = useSession();
 
+  const fetcher = makeFetcher(session?.accessToken as string);
   // === DATA ===
   const {
     data: doctors = [],
@@ -151,7 +141,7 @@ export default function DoctorsPage() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        Authorization: `Bearer ${session?.accessToken}`,
       },
       body: JSON.stringify(payload),
     });
@@ -212,7 +202,7 @@ export default function DoctorsPage() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          Authorization: `Bearer ${session?.accessToken}`,
         },
         body: JSON.stringify(payload),
       });
@@ -238,7 +228,7 @@ export default function DoctorsPage() {
     try {
       await fetch(`${API_BASE}accounts/medecins/${id}/delete/`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
+        headers: { Authorization: `Bearer ${session?.accessToken}` },
       });
       toast.success("Médecin supprimé");
       mutateDoctors();

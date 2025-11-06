@@ -1,14 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { jwtDecode } from "jwt-decode";
 import {
   Search, User, Mail, Phone, Calendar, Plus, Edit, Trash2, X,
   Building2, Heart, Shield, AlertCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
+
 
 // === CONFIG ===
 const API_BASE = process.env.BACKEND_URL || 'http://localhost:8000/api/';
@@ -16,19 +18,13 @@ const PATIENT_LIST_API = `${API_BASE}accounts/patients/`;
 const PATIENT_CREATE_API = `${API_BASE}accounts/create-patient/`;
 
 // === FETCHER ===
-const fetcher = (url: string) =>
+const fetcher = (url: string, token: any) =>
   fetch(url, {
     headers: {
-      Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
   }).then(async (res) => {
-    if (res.status === 401) {
-      toast.error("Session expirée");
-      localStorage.removeItem("access_token");
-      window.location.href = "/login";
-      return [];
-    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || err.error || "Erreur serveur");
@@ -69,39 +65,26 @@ export default function PatientsPage() {
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
-  const [managerId, setManagerId] = useState<number | null>(null);
+  const { data: session, status } = useSession();
+  const token = session?.accessToken;
+  const role = session?.user?.role;
+  const managerId = session?.user?.id;
 
-  // === RÉCUPÉRER LE MANAGER CONNECTÉ ===
-  useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      try {
-        const decoded: JWT = jwtDecode(token);
-        if (decoded.user_type === "MANAGER") {
-          setManagerId(decoded.user_id);
-        } else {
-          toast.error("Accès refusé");
-          window.location.href = "/dashboard";
-        }
-      } catch (err) {
-        console.error("Token invalide", err);
-      }
-    }
-  }, []);
 
   // === CLINIQUES DU MANAGER ===
   const CLINICS_API = managerId ? `${API_BASE}clinique/managers/${managerId}/clinics/` : null;
   const { data: cliniques = [], isLoading: cliniquesLoading, error: cliniquesError } = useSWR<Clinic[]>(
-    CLINICS_API,
-    fetcher,
-    { revalidateOnFocus: false }
+    managerId && token ? [CLINICS_API, token] : null,
+    ([url, t]) => fetcher(url, t)
   );
+
 
   // === PATIENTS ===
   const { data: patients = [], mutate: refreshPatients } = useSWR<Patient[]>(
-    PATIENT_LIST_API,
-    fetcher
+    token ? [PATIENT_LIST_API, token] : null,
+    ([url, t]) => fetcher(url, t)
   );
+
 
   // === FORMULAIRE ===
   const [form, setForm] = useState({
@@ -177,7 +160,7 @@ export default function PatientsPage() {
         method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           ...form,
@@ -209,7 +192,7 @@ export default function PatientsPage() {
       const res = await fetch(`${API_BASE}accounts/patients/${id}/delete/`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
