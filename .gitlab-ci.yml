@@ -3,7 +3,7 @@ stages:
   - docker
 
 variables:
-  DOCKER_IMAGE: $DOCKER_USERNAME/Med-Flow-Frontend
+  DOCKER_IMAGE: $DOCKER_USERNAME/med-flow-frontend
 
 cache:
   key: frontend-cache
