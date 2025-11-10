@@ -1,94 +1,68 @@
-
 'use client';
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { signOut, useSession } from 'next-auth/react';
 import {
-  LayoutDashboard,
-  Calendar,
-  FileText,
-  Activity,
-  Settings,
-  Menu,
-  X,
-  LogOut,
-  ChevronRight,
-  Stethoscope,
-  UserPlus,
-  UserCheck,
+  LayoutDashboard, Calendar, Users, FileText, DollarSign,
+  Menu, X, LogOut, ChevronRight, UserPlus, Stethoscope
 } from 'lucide-react';
+import { signOut, useSession } from 'next-auth/react';
 
 const menuItems = [
-  { href: '/doctor/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/doctor/consultations', label: 'Consultations', icon: Calendar },
-  { href: '/doctor/ordonnances', label: 'Ordonnances', icon: FileText },
-  { href: "/doctor/patients", label: "Patients", icon: UserPlus },
-  { href: '/ddoctor/traitements', label: 'Traitements', icon: Activity },
+  { href: '/receptionist/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
+  { href: '/receptionist/appointments', label: 'Rendez-vous', icon: Calendar },
+  { href: '/receptionist/patients', label: 'Patients', icon: Users },
+  { href: '/receptionist/medical', label: 'Dossiers médicaux', icon: FileText },
+  { href: '/receptionist/billing', label: 'Facturation', icon: DollarSign },
 ];
 
-export default function ManagerLayout({ children }: { children: React.ReactNode }) {
+export default function ReceptionistLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
-  
-    const handleLogout = async () => {
-      try {
-        await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/accounts/logout/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.accessToken}`,
-          },
-          body: JSON.stringify({ refresh: session?.refreshToken }),
-        });
-  
-        signOut({ callbackUrl: '/login' });
-      } catch (error) {
-        console.error('Logout failed:', error);
-        signOut({ callbackUrl: '/login' });
-      }
-    };
+
+  const handleLogout = async () => {
+    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/accounts/logout/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.accessToken}`,
+      },
+      body: JSON.stringify({ refresh: session?.refreshToken }),
+    });
+    signOut({ callbackUrl: '/login' });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex">
-      {/* === SIDEBAR === */}
+      {/* Sidebar */}
       <motion.aside
         initial={{ x: -300 }}
         animate={{ x: sidebarOpen ? 0 : 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className={`fixed md:relative z-50 w-64 h-screen bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 flex flex-col ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         } transition-transform duration-300`}
       >
-        {/* Logo & Close Button */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
-                M
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
+                R
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-                MediManager
-              </h2>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">MediReception</h2>
             </div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="md:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
+            <button onClick={() => setSidebarOpen(false)} className="md:hidden">
               <X className="w-6 h-6" />
             </button>
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-
+            const isActive = pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
@@ -96,7 +70,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
                 onClick={() => setSidebarOpen(false)}
                 className={`group flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   isActive
-                    ? 'bg-gradient-to-r from-teal-600 to-teal-700 text-white shadow-lg'
+                    ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
@@ -110,7 +84,6 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
           })}
         </nav>
 
-        {/* Logout */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all">
             <LogOut className="w-5 h-5" />
@@ -132,35 +105,27 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
         )}
       </AnimatePresence>
 
-      {/* === MAIN CONTENT === */}
+      {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Navbar */}
         <header className="bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700">
           <div className="px-6 py-4 flex items-center justify-between">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="md:hidden text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-            >
+            <button onClick={() => setSidebarOpen(true)} className="md:hidden">
               <Menu className="w-6 h-6" />
             </button>
-
             <div className="flex items-center gap-4 ml-auto">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
                   {session?.user.firstname} {session?.user.lastname}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {session?.user.email}
-                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Réceptionniste</p>
               </div>
-              <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold">
-                M
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold">
+                R
               </div>
             </div>
           </div>
         </header>
 
-        {/* Page Content */}
         <main className="flex-1 p-6 md:p-8 overflow-auto">
           <div className="max-w-7xl mx-auto">
             {children}
