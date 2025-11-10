@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 import {
@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
-
 
 // === TYPES ===
 type Doctor = {
@@ -21,7 +20,7 @@ type Doctor = {
   speciality: string;
   consultation_fee: number;
   experience_years: number;
-  availability: string;
+  // availability: string;  ← SUPPRIMÉ
   clinique?: { id: number; name: string } | null;
   clinique_name?: string;
   is_active: boolean;
@@ -31,6 +30,29 @@ type Clinique = {
   id: number;
   name: string;
 };
+
+type Availability = {
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  duration_per_slot: number;
+};
+
+// === CRÉNEAUX PAR DÉFAUT : Lun-Ven, 9h-12h + 14h-17h, 30 min ===
+const defaultAvailabilities: Availability[] = [
+  // Matin
+  { day_of_week: 0, start_time: "09:00:00", end_time: "12:00:00", duration_per_slot: 30 },
+  { day_of_week: 1, start_time: "09:00:00", end_time: "12:00:00", duration_per_slot: 30 },
+  { day_of_week: 2, start_time: "09:00:00", end_time: "12:00:00", duration_per_slot: 30 },
+  { day_of_week: 3, start_time: "09:00:00", end_time: "12:00:00", duration_per_slot: 30 },
+  { day_of_week: 4, start_time: "09:00:00", end_time: "12:00:00", duration_per_slot: 30 },
+  // Après-midi
+  { day_of_week: 0, start_time: "14:00:00", end_time: "17:00:00", duration_per_slot: 30 },
+  { day_of_week: 1, start_time: "14:00:00", end_time: "17:00:00", duration_per_slot: 30 },
+  { day_of_week: 2, start_time: "14:00:00", end_time: "17:00:00", duration_per_slot: 30 },
+  { day_of_week: 3, start_time: "14:00:00", end_time: "17:00:00", duration_per_slot: 30 },
+  { day_of_week: 4, start_time: "14:00:00", end_time: "17:00:00", duration_per_slot: 30 },
+];
 
 // === CONFIG ===
 const API_BASE = process.env.BACKEND_URL || 'http://localhost:8000/api/';
@@ -55,35 +77,134 @@ const makeFetcher = (token: string) => async (url: string) => {
   return res.json();
 };
 
+// === COMPOSANT : PLANNING MÉDECIN ===
+interface AvailabilitySchedulerProps {
+  onChange: (availabilities: Availability[]) => void;
+}
+
+function AvailabilityScheduler({ onChange }: AvailabilitySchedulerProps) {
+  const [availabilities, setAvailabilities] = useState<Availability[]>(defaultAvailabilities);
+  const [selectedDay, setSelectedDay] = useState(0);
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('12:00');
+  const [duration, setDuration] = useState('30');
+
+  const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+  // Init avec créneaux par défaut
+  useEffect(() => {
+    onChange(defaultAvailabilities);
+  }, [onChange]);
+
+  const addSlot = () => {
+    if (startTime >= endTime) {
+      toast.error("L'heure de début doit être avant la fin");
+      return;
+    }
+    const newSlot: Availability = {
+      day_of_week: selectedDay,
+      start_time: startTime + ':00',
+      end_time: endTime + ':00',
+      duration_per_slot: parseInt(duration),
+    };
+    const updated = [...availabilities, newSlot];
+    setAvailabilities(updated);
+    onChange(updated);
+  };
+
+  const removeSlot = (index: number) => {
+    const updated = availabilities.filter((_, i) => i !== index);
+    setAvailabilities(updated);
+    onChange(updated);
+  };
+
+  return (
+    <div className="md:col-span-2 space-y-4 p-4 border border-teal-200 dark:border-teal-700 rounded-xl bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/30 dark:to-cyan-900/30">
+      <h4 className="font-semibold text-teal-800 dark:text-teal-200 flex items-center gap-2">
+        <Calendar className="w-5 h-5" /> Créneaux de consultation
+      </h4>
+
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <select
+          value={selectedDay}
+          onChange={(e) => setSelectedDay(parseInt(e.target.value))}
+          className="px-3 py-2 border border-teal-300 dark:border-teal-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-teal-500"
+        >
+          {days.map((d, i) => (
+            <option key={i} value={i}>{d}</option>
+          ))}
+        </select>
+        <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="px-3 py-2 border border-teal-300 dark:border-teal-600 rounded-lg" />
+        <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="px-3 py-2 border border-teal-300 dark:border-teal-600 rounded-lg" />
+        <select value={duration} onChange={(e) => setDuration(e.target.value)} className="px-3 py-2 border border-teal-300 dark:border-teal-600 rounded-lg">
+          <option value="15">15 min</option>
+          <option value="30">30 min</option>
+          <option value="45">45 min</option>
+          <option value="60">60 min</option>
+        </select>
+        <button
+          type="button"
+          onClick={addSlot}
+          className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 flex items-center justify-center gap-1 transition"
+        >
+          <Plus className="w-4 h-4" /> Ajouter
+        </button>
+      </div>
+
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {availabilities.length === 0 ? (
+          <p className="text-sm text-teal-600 dark:text-teal-400 italic">Aucun créneau défini</p>
+        ) : (
+          availabilities.map((slot, i) => (
+            <div key={i} className="flex items-center justify-between bg-white dark:bg-gray-700 p-3 rounded-lg shadow-sm">
+              <div className="flex items-center gap-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-teal-600 dark:text-teal-400">{days[slot.day_of_week]}</span>
+                <span>{slot.start_time.slice(0,5)} - {slot.end_time.slice(0,5)}</span>
+                <span className="text-xs bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded">
+                  {slot.duration_per_slot} min
+                </span>
+              </div>
+              <button
+                onClick={() => removeSlot(i)}
+                className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/50 p-1 rounded transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 // === PAGE ===
 export default function DoctorsPage() {
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const { data: session, status } = useSession();
+  const [doctorAvailabilities, setDoctorAvailabilities] = useState<Availability[]>([]);
+  const { data: session } = useSession();
 
   const fetcher = makeFetcher(session?.accessToken as string);
-  // === DATA ===
+
   const {
     data: doctors = [],
     isLoading: doctorsLoading,
     mutate: mutateDoctors,
   } = useSWR<Doctor[]>(DOCTOR_LIST_API, fetcher);
 
-  // Récupère l'utilisateur connecté (pour son ID)
   const { data: currentUser } = useSWR<{ id: number; user_type: string }>(
     CURRENT_USER_API,
     fetcher
   );
 
-  // Construit l'URL dynamique : /api/clinique/managers/<id>/clinics/
   const managerId = currentUser?.id;
   const CLINICS_API = managerId 
     ? `${API_BASE}clinique/managers/${managerId}/clinics/`
     : null;
 
-  // Récupère les cliniques du manager
   const { 
     data: clinicsData = [], 
     isLoading: clinicsLoading 
@@ -92,20 +213,19 @@ export default function DoctorsPage() {
     fetcher
   );
 
-  // Prend la première clinique (un manager = une clinique)
   const managerClinic = clinicsData[0];
 
-  // === FORM STATE ===
   const [form, setForm] = useState({
     email: "", password: "", firstname: "", lastname: "", phone: "",
-    speciality: "", consultation_fee: "", experience_years: "", availability: ""
+    speciality: "", consultation_fee: "", experience_years: ""
   });
 
   const resetForm = () => {
     setForm({
       email: "", password: "", firstname: "", lastname: "", phone: "",
-      speciality: "", consultation_fee: "", experience_years: "", availability: ""
+      speciality: "", consultation_fee: "", experience_years: ""
     });
+    setDoctorAvailabilities(defaultAvailabilities); // ← Réinitialise avec défaut
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,62 +233,64 @@ export default function DoctorsPage() {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  // === FILTER ===
   const filtered = doctors.filter(d =>
     `${d.firstname} ${d.lastname}`.toLowerCase().includes(search.toLowerCase()) ||
     d.email.toLowerCase().includes(search.toLowerCase()) ||
     d.speciality.toLowerCase().includes(search.toLowerCase())
   );
 
-  // === CREATE ===
- const handleCreate = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (!managerClinic?.id) {
-    toast.error("Aucune clinique trouvée. Impossible de créer le médecin.");
-    return;
-  }
-
-  const payload = {
-    ...form,
-    clinique: managerClinic.id,
-    consultation_fee: parseFloat(form.consultation_fee) || 0,
-    experience_years: parseInt(form.experience_years) || 0,
-  };
-
-  try {
-    const res = await fetch(DOCTOR_CREATE_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session?.accessToken}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      // Gestion des erreurs claires
-      if (data.details?.email?.[0]?.includes("already exists")) {
-        toast.error("Cet email est déjà utilisé.");
-      } else {
-        toast.error(data.error || data.details?.[0] || "Échec création");
-      }
-      console.error("Erreur API:", data);
+    if (!managerClinic?.id) {
+      toast.error("Aucune clinique trouvée. Impossible de créer le médecin.");
       return;
     }
 
-    toast.success(data.message || "Médecin créé avec succès");
-    mutateDoctors();
-    setIsCreateOpen(false);
-    resetForm();
-  } catch (err: any) {
-    toast.error("Erreur réseau");
-    console.error(err);
-  }
-};
-  // === EDIT ===
+    // Plus de validation → on envoie toujours les créneaux par défaut
+    const payload = {
+      email: form.email,
+      password: form.password,
+      firstname: form.firstname,
+      lastname: form.lastname,
+      phone: form.phone,
+      speciality: form.speciality,
+      consultation_fee: parseFloat(form.consultation_fee) || 0,
+      experience_years: parseInt(form.experience_years) || 0,
+      clinique: managerClinic.id,
+      availabilities: doctorAvailabilities, // ← ENVOYÉ
+    };
+
+    try {
+      const res = await fetch(DOCTOR_CREATE_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.details?.email?.[0]?.includes("already exists")) {
+          toast.error("Cet email est déjà utilisé.");
+        } else {
+          toast.error(data.error || "Échec création");
+        }
+        return;
+      }
+
+      toast.success("Médecin créé avec succès");
+      mutateDoctors();
+      setIsCreateOpen(false);
+      resetForm();
+    } catch (err) {
+      toast.error("Erreur réseau");
+    }
+  };
+
   const openEdit = (d: Doctor) => {
     setEditingId(d.id);
     setForm({
@@ -180,7 +302,6 @@ export default function DoctorsPage() {
       speciality: d.speciality,
       consultation_fee: d.consultation_fee.toString(),
       experience_years: d.experience_years.toString(),
-      availability: d.availability,
     });
     setIsEditOpen(true);
   };
@@ -221,7 +342,6 @@ export default function DoctorsPage() {
     }
   };
 
-  // === DELETE ===
   const handleDelete = async (id: number) => {
     if (!confirm("Supprimer ce médecin ?")) return;
 
@@ -304,7 +424,9 @@ export default function DoctorsPage() {
                 <Input label="Spécialité" icon={Stethoscope} name="speciality" value={form.speciality} onChange={handleInputChange} required />
                 <Input label="Tarif (€)" name="consultation_fee" type="number" step="0.01" value={form.consultation_fee} onChange={handleInputChange} />
                 <Input label="Expérience (années)" name="experience_years" type="number" value={form.experience_years} onChange={handleInputChange} />
-                <Input label="Disponibilité" icon={Calendar} name="availability" placeholder="Lun-Ven 9h-18h" value={form.availability} onChange={handleInputChange} />
+
+                {/* PLANNING AVEC CRÉNEAUX PAR DÉFAUT */}
+                <AvailabilityScheduler onChange={setDoctorAvailabilities} />
 
                 {/* Clinique auto-assignée */}
                 <div className="md:col-span-2 p-4 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/50 dark:to-cyan-900/50 rounded-xl border border-teal-200 dark:border-teal-700">
@@ -347,7 +469,7 @@ export default function DoctorsPage() {
         )}
       </AnimatePresence>
 
-      {/* EDIT MODAL */}
+      {/* EDIT MODAL (inchangé) */}
       <AnimatePresence>
         {isEditOpen && (
           <Modal title="Modifier Médecin" onClose={() => { setIsEditOpen(false); resetForm(); }}>
@@ -368,7 +490,6 @@ export default function DoctorsPage() {
                 <Input label="Spécialité" icon={Stethoscope} name="speciality" value={form.speciality} onChange={handleInputChange} required />
                 <Input label="Tarif (€)" name="consultation_fee" type="number" step="0.01" value={form.consultation_fee} onChange={handleInputChange} />
                 <Input label="Expérience" name="experience_years" type="number" value={form.experience_years} onChange={handleInputChange} />
-                <Input label="Disponibilité" icon={Calendar} name="availability" value={form.availability} onChange={handleInputChange} />
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -398,16 +519,8 @@ export default function DoctorsPage() {
   );
 }
 
-// === DOCTOR CARD ===
-function DoctorCard({
-  doctor,
-  onEdit,
-  onDelete,
-}: {
-  doctor: Doctor;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
+// === DOCTOR CARD, MODAL, INPUT (inchangés) ===
+function DoctorCard({ doctor, onEdit, onDelete }: { doctor: Doctor; onEdit: () => void; onDelete: () => void }) {
   return (
     <motion.div
       layout
@@ -451,7 +564,6 @@ function DoctorCard({
   );
 }
 
-// === MODAL ===
 function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
     <motion.div
@@ -481,7 +593,6 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   );
 }
 
-// === INPUT ===
 function Input({ label, icon: Icon, ...props }: any) {
   return (
     <div>

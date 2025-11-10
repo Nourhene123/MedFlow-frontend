@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
