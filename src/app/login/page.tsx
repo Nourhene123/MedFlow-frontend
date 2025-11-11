@@ -55,8 +55,8 @@ export default function LoginPage() {
       }else{
         setMessage({ type: 'error', text: 'Identifiants invalides. Vérifiez votre email et mot de passe.' });
       }
-    } catch (error: any) {
-      console.error(error)
+    } catch (error: unknown) {
+      console.error(error);
       
     } finally {
       setLoading(false);

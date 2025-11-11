@@ -1,5 +1,6 @@
 // app/doctor/dashboard/page.tsx
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import useSWR from "swr";
 import Link from "next/link";
@@ -47,7 +48,7 @@ export default function DoctorDashboard() {
         <p className="text-gray-600 dark:text-gray-400 mt-1">
           {isLoading
             ? "Chargement..."
-            : `Vous avez ${summary?.today_consultations || 0} consultation${summary?.today_consultations > 1 ? 's' : ''} aujourd'hui.`}
+            : `Vous avez ${summary?.today_consultations || 0} consultation${summary?.today_consultations > 1 ? 's' : ''} aujourd&apos;hui.`}
         </p>
       </div>
 

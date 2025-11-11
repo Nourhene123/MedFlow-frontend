@@ -1,6 +1,13 @@
 import * as React from "react"
 
-import type { ToastActionElement, ToastProps } from "@/app/patient/components/ui/toast"
+// Lightweight local types to avoid external UI coupling
+type ToastActionElement = React.ReactNode
+type ToastProps = {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  title?: React.ReactNode
+  description?: React.ReactNode
+}
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000

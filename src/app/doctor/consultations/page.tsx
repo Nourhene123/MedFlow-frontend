@@ -1,5 +1,6 @@
 // app/doctor/consultations/page.tsx
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Activity, CheckCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
@@ -11,7 +12,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Calendar, Clock, User, Plus, Edit, Trash } from 'lucide-react';
+import { Calendar, Clock, Plus } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -36,12 +37,15 @@ export default function AgendaPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showModal, setShowModal] = useState(false);
 
+  // Work around type issue with FullCalendar React typings in strict builds
+  const FullCalendarComponent = FullCalendar as unknown as React.ComponentType<any>;
+
   const fetcher = (url: string) =>
     fetch(url, {
       headers: { Authorization: `Bearer ${session?.accessToken}` },
     }).then(r => r.json());
 
-  const { data: agenda = [], mutate } = useSWR(`${API_BASE}doctor/agenda/`, fetcher);
+  const { data: agenda = [] } = useSWR(`${API_BASE}doctor/agenda/`, fetcher);
 
   useEffect(() => {
     if (agenda) {
@@ -94,7 +98,7 @@ export default function AgendaPage() {
               <Calendar className="w-8 h-8 text-blue-600" />
               Mon Agenda
             </h1>
-            <p className="text-gray-600 mt-1">Gérez vos consultations en un coup d'œil</p>
+            <p className="text-gray-600 mt-1">Gérez vos consultations en un coup d&apos;œil</p>
           </div>
           <Link
             href="/doctor/consultations/new"
@@ -107,7 +111,7 @@ export default function AgendaPage() {
 
         {/* Calendar */}
         <div className="bg-white rounded-2xl shadow-xl p-4 md:p-6">
-          <FullCalendar
+          <FullCalendarComponent
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="timeGridWeek"
             headerToolbar={{
@@ -117,7 +121,7 @@ export default function AgendaPage() {
             }}
             locale={fr}
             buttonText={{
-              today: 'Aujourd\'hui',
+              today: "Aujourd'hui",
               month: 'Mois',
               week: 'Semaine',
               day: 'Jour',
@@ -152,7 +156,7 @@ export default function AgendaPage() {
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5 text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100">Consultations aujourd'hui</p>
+                <p className="text-blue-100">Consultations aujourd&apos;hui</p>
                 <p className="text-3xl font-bold mt-1">
                   {agenda.filter((r: any) => new Date(r.date).toDateString() === new Date().toDateString()).length}
                 </p>
