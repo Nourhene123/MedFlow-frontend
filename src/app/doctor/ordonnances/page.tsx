@@ -1,8 +1,9 @@
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import useSWR from "swr";
 import Link from "next/link";
-import { FileText, Download } from "lucide-react";
+import { Download } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;

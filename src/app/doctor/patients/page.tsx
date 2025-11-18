@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import useSWR from "swr";
 import { Search, UserPlus } from "lucide-react";

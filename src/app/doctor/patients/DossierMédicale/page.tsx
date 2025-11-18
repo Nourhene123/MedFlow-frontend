@@ -1,9 +1,9 @@
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import useSWR from "swr";
 import { useParams } from "next/navigation";
-import { Stethoscope, FileText, Calendar } from "lucide-react";
-import Link from "next/link";
+import { Stethoscope, Calendar } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;

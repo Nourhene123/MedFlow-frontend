@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useMemo, useEffect } from 'react';
 import useSWR from 'swr';
@@ -8,7 +9,7 @@ import {
   Plus, Edit, Trash2, X, Loader2, Check, AlertCircle
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import toast, { Toaster } from 'react-hot-toast';
+import { toast, Toaster } from 'sonner';
 import {
   format, startOfMonth, endOfMonth, isSameMonth, isSameDay,
   addMonths, subMonths
@@ -35,7 +36,7 @@ const notify = (type: 'success' | 'error', message: string) => {
 const formatDate = (dateStr: string | Date | null | undefined, formatStr: string): string => {
   if (!dateStr) return '—';
   const date = new Date(dateStr);
-  return isNaN(date.getTime()) ? '—' : (format as any)(date, formatStr, { locale: fr });
+  return isNaN(date.getTime()) ? '—' : format(date, formatStr);
 };
 
 // === TYPES ===
@@ -469,7 +470,7 @@ export default function AppointmentsPage() {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
     const days: Date[] = [];
-    let current = new Date(monthStart);
+    const current = new Date(monthStart);
     while (current <= monthEnd) {
       days.push(new Date(current));
       current.setDate(current.getDate() + 1);

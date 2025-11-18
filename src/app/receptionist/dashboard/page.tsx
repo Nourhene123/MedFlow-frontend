@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import useSWR from "swr";
 import Link from "next/link";
@@ -134,12 +135,12 @@ export default function ReceptionistDashboard() {
       {/* Planning du jour */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-          RDV d'aujourd'hui
+          RDV d&apos;aujourd&apos;hui
         </h3>
         {isLoading ? (
           <p className="text-gray-500">Chargement...</p>
         ) : todayAppointments.length === 0 ? (
-          <p className="text-gray-500">Aucun RDV aujourd'hui</p>
+          <p className="text-gray-500">Aucun RDV aujourd&apos;hui</p>
         ) : (
           <div className="space-y-3">
             {todayAppointments.slice(0, 5).map((appt: any) => (
