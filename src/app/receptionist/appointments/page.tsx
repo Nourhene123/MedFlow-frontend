@@ -21,13 +21,19 @@ const API_BASE = 'http://127.0.0.1:8000/api/';
 // === NOTIFICATIONS ===
 const notify = (type: 'success' | 'error', message: string) => {
   toast[type](message, {
-    style: { borderRadius: '12px', background: '#333', color: '#fff' },
-    icon: type === 'success' ? <Check className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />
+    style: {
+      borderRadius: '10px',
+      background: type === 'success' ? '#10b981' : '#ef4444',
+      color: '#fff',
+      fontWeight: '500',
+    },
+    icon: type === 'success' ? <Check className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />,
+    duration: 3000,
   });
 };
 
 // === FORMATAGE DATE ===
-const formatDate = (dateStr: string | null | undefined, formatStr: string): string => {
+const formatDate = (dateStr: string | Date | null | undefined, formatStr: string): string => {
   if (!dateStr) return '—';
   const date = new Date(dateStr);
   return isNaN(date.getTime()) ? '—' : format(date, formatStr);
@@ -204,7 +210,7 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
         throw new Error(err.detail || 'Erreur serveur');
       }
 
-      notify('success', isEdit ? 'RDV modifié !' : 'RDV créé !');
+      notify('success', isEdit ? 'RDV modifié avec succès' : 'RDV créé avec succès');
       onClose();
       mutate();
     } catch (error: any) {
@@ -216,21 +222,24 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {isEdit ? 'Modifier le RDV' : 'Nouveau Rendez-vous'}
+            {isEdit ? 'Modifier le rendez-vous' : 'Nouveau rendez-vous'}
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-            <X className="w-5 h-5" />
+          <button
+            onClick={onClose}
+            className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Patient */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Patient <span className="text-red-500">*</span>
             </label>
             <select
@@ -238,23 +247,23 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
               value={formData.patient_id}
               onChange={handleChange}
               disabled={isLoading}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${
-                errors.patient_id ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:border-gray-600 transition-all ${
+                errors.patient_id ? 'border-red-500' : 'border-gray-300'
               }`}
             >
               <option value="">{isLoading ? 'Chargement...' : 'Sélectionner un patient'}</option>
               {patients.map(p => (
                 <option key={p.id} value={p.id}>
-                  {p.firstname} {p.lastname} ({p.phone || '—'})
+                  {p.firstname} {p.lastname} {p.phone ? `(${p.phone})` : ''}
                 </option>
               ))}
             </select>
-            {errors.patient_id && <p className="mt-1 text-sm text-red-600">{errors.patient_id}</p>}
+            {errors.patient_id && <p className="mt-1.5 text-sm text-red-600 font-medium">{errors.patient_id}</p>}
           </div>
 
           {/* Médecin */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Médecin <span className="text-red-500">*</span>
             </label>
             <select
@@ -262,8 +271,8 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
               value={formData.medecin_id}
               onChange={handleChange}
               disabled={isLoading}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${
-                errors.medecin_id ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:border-gray-600 transition-all ${
+                errors.medecin_id ? 'border-red-500' : 'border-gray-300'
               }`}
             >
               <option value="">{isLoading ? 'Chargement...' : 'Sélectionner un médecin'}</option>
@@ -273,12 +282,12 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
                 </option>
               ))}
             </select>
-            {errors.medecin_id && <p className="mt-1 text-sm text-red-600">{errors.medecin_id}</p>}
+            {errors.medecin_id && <p className="mt-1.5 text-sm text-red-600 font-medium">{errors.medecin_id}</p>}
           </div>
 
           {/* Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Date <span className="text-red-500">*</span>
             </label>
             <input
@@ -286,8 +295,8 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
               name="date"
               value={formData.date.split('T')[0] || ''}
               onChange={handleChange}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${
-                errors.date ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:border-gray-600 transition-all ${
+                errors.date ? 'border-red-500' : 'border-gray-300'
               }`}
             />
           </div>
@@ -295,18 +304,18 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
           {/* Créneaux */}
           {selectedDoctor && selectedDate && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Heure disponible <span className="text-red-500">*</span>
               </label>
               {loadingSlots ? (
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Chargement...
+                  Chargement des créneaux...
                 </div>
               ) : availableSlots.length === 0 ? (
-                <p className="text-sm text-orange-600">Aucun créneau disponible</p>
+                <p className="text-sm text-orange-600 font-medium">Aucun créneau disponible</p>
               ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
                   {availableSlots.map(slot => (
                     <button
                       key={slot.time}
@@ -315,10 +324,10 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
                         setFormData(prev => ({ ...prev, date: slot.time }));
                         setErrors(prev => ({ ...prev, date: '' }));
                       }}
-                      className={`px-3 py-2 text-sm rounded-lg border transition-all ${
+                      className={`px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
                         formData.date === slot.time
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-blue-500'
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-blue-400 hover:shadow-sm'
                       }`}
                     >
                       {slot.label}
@@ -326,13 +335,13 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
                   ))}
                 </div>
               )}
-              {errors.date && <p className="mt-1 text-sm text-red-600">{errors.date}</p>}
+              {errors.date && <p className="mt-1.5 text-sm text-red-600 font-medium">{errors.date}</p>}
             </div>
           )}
 
           {/* Motif */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Motif <span className="text-red-500">*</span>
             </label>
             <input
@@ -341,33 +350,34 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
               value={formData.motif}
               onChange={handleChange}
               placeholder="Ex: Consultation générale"
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${
-                errors.motif ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:border-gray-600 transition-all ${
+                errors.motif ? 'border-red-500' : 'border-gray-300'
               }`}
             />
-            {errors.motif && <p className="mt-1 text-sm text-red-600">{errors.motif}</p>}
+            {errors.motif && <p className="mt-1.5 text-sm text-red-600 font-medium">{errors.motif}</p>}
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notes</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Notes</label>
             <textarea
               name="notes"
               value={formData.notes}
               onChange={handleChange}
               rows={3}
-              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              placeholder="Informations supplémentaires..."
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white transition-all resize-none"
             />
           </div>
 
           {/* Statut */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Statut</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Statut</label>
             <select
               name="status"
               value={formData.status}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white transition-all"
             >
               <option value="PROGRAMME">Programmé</option>
               <option value="TERMINE">Terminé</option>
@@ -376,18 +386,18 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
           </div>
 
           {/* Boutons */}
-          <div className="flex gap-4 pt-4">
+          <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={isSubmitting || isLoading || loadingSlots}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-medium hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -395,7 +405,7 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
                   {isEdit ? 'Modification...' : 'Création...'}
                 </>
               ) : (
-                isEdit ? 'Modifier' : 'Créer'
+                isEdit ? 'Modifier' : 'Créer le RDV'
               )}
             </button>
           </div>
@@ -477,26 +487,34 @@ export default function AppointmentsPage() {
     }, [appointments]);
 
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold">{(format as any)(currentMonth, 'MMMM yyyy', { locale: fr })}</h3>
-          <div className="flex gap-2">
-            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+            {(format as any)(currentMonth, 'MMMM yyyy', { locale: fr })}
+          </h3>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <button
+              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-2 text-center text-sm font-medium text-gray-600 dark:text-gray-400">
+        <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
           {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (
             <div key={day}>{day}</div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-2 mt-2">
+        <div className="grid grid-cols-7 gap-2 mt-3">
           {days.map(day => {
             const key = format(day, 'yyyy-MM-dd');
             const dayAppts = appointmentsByDate[key] || [];
@@ -506,18 +524,25 @@ export default function AppointmentsPage() {
             return (
               <div
                 key={day.toString()}
-                className={`min-h-24 p-2 rounded-lg border ${
-                  isToday ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'
-                } ${!isCurrent && 'opacity-40'}`}
+                className={`min-h-24 p-2 rounded-lg border transition-all ${
+                  isToday
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                    : 'border-gray-200 dark:border-gray-700'
+                } ${!isCurrent && 'opacity-50'}`}
               >
-                <div className="text-sm font-medium">{format(day, 'd')}</div>
+                <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">{format(day, 'd')}</div>
                 <div className="text-xs space-y-1 mt-1">
                   {dayAppts.slice(0, 3).map(appt => (
-                    <div key={appt.id} className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-1 py-0.5 rounded text-xs truncate">
+                    <div
+                      key={appt.id}
+                      className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded text-xs truncate font-medium"
+                    >
                       {appt.patient.firstname} - {formatDate(appt.date, 'HH:mm')}
                     </div>
                   ))}
-                  {dayAppts.length > 3 && <div className="text-xs text-gray-500">+{dayAppts.length - 3}</div>}
+                  {dayAppts.length > 3 && (
+                    <div className="text-xs text-gray-500 font-medium">+{dayAppts.length - 3}</div>
+                  )}
                 </div>
               </div>
             );
@@ -530,196 +555,213 @@ export default function AppointmentsPage() {
   return (
     <>
       <Toaster position="top-right" />
-      <div className="space-y-8 p-6">
-        {/* En-tête */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Rendez-vous</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez le planning des consultations</p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setViewMode(viewMode === 'list' ? 'calendar' : 'list')}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              {viewMode === 'list' ? 'Vue Calendrier' : 'Vue Liste'}
-            </button>
-            <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
-            >
-              <Plus className="w-5 h-5" />
-              Nouveau RDV
-            </button>
-          </div>
-        </div>
-
-        {/* Filtres */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Rechercher..."
-                value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* En-tête */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Gestion des Rendez-vous</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">Planifiez et suivez les consultations médicales</p>
             </div>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => { setSelectedDate(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              />
-            </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="">Tous les statuts</option>
-              <option value="PROGRAMME">Programmé</option>
-              <option value="TERMINE">Terminé</option>
-              <option value="ANNULE">Annulé</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Contenu */}
-        {viewMode === 'list' ? (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
-            {isLoading ? (
-              <div className="p-8 text-center text-gray-500">Chargement...</div>
-            ) : appointments.length === 0 ? (
-              <div className="p-8 text-center">
-                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">Aucun rendez-vous trouvé</p>
-              </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                      <tr>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Patient</th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Médecin</th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date & Heure</th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Statut</th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {appointments.map(appt => (
-                        <tr key={appt.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-medium">
-                                {appt.patient.firstname[0] || '?'}
-                              </div>
-                              <div>
-                                <p className="font-medium text-gray-900 dark:text-white">
-                                  {appt.patient.firstname} {appt.patient.lastname}
-                                </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{appt.patient.phone || '—'}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <Stethoscope className="w-4 h-4 text-indigo-600" />
-                              <span className="font-medium text-gray-900 dark:text-white">
-                                Dr. {appt.medecin.firstname} {appt.medecin.lastname}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-900 dark:text-white">{formatDate(appt.date, 'dd MMM yyyy')}</span>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Clock className="w-4 h-4 text-gray-400" />
-                              <span className="text-sm text-gray-600 dark:text-gray-400">{formatDate(appt.date, 'HH:mm')}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                              appt.status === 'PROGRAMME' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                              : appt.status === 'TERMINE' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                              : appt.status === 'ANNULE' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
-                              : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                            }`}>
-                              {appt.status_display || appt.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => { setEditingAppointment(appt); setShowModal(true); }}
-                                className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(appt.id!)}
-                                className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Page {currentPage} sur {totalPages} ({totalItems} RDV)
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        <ChevronLeft className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                        className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setViewMode(viewMode === 'list' ? 'calendar' : 'list')}
+                className="px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+              >
+                {viewMode === 'list' ? (
+                  <>
+                    <Calendar className="w-4 h-4 inline mr-1.5" />
+                    Vue Calendrier
+                  </>
+                ) : (
+                  <>
+                    <Stethoscope className="w-4 h-4 inline mr-1.5" />
+                    Vue Liste
+                  </>
                 )}
-              </>
-            )}
+              </button>
+              <button
+                onClick={() => setShowModal(true)}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-3 rounded-lg font-semibold hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:-translate-y-0.5"
+              >
+                <Plus className="w-5 h-5" />
+                Nouveau RDV
+              </button>
+            </div>
           </div>
-        ) : (
-          <CalendarView />
-        )}
 
-        {/* Modale */}
-        {showModal && (
-          <AppointmentModal
-            appointment={editingAppointment || undefined}
-            onClose={() => {
-              setShowModal(false);
-              setEditingAppointment(null);
-            }}
-            mutate={mutate}
-          />
-        )}
+          {/* Filtres */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher un patient..."
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white transition-all"
+                />
+              </div>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => { setSelectedDate(e.target.value); setCurrentPage(1); }}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white transition-all"
+                />
+              </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white transition-all"
+              >
+                <option value="">Tous les statuts</option>
+                <option value="PROGRAMME">Programmé</option>
+                <option value="TERMINE">Terminé</option>
+                <option value="ANNULE">Annulé</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Contenu */}
+          {viewMode === 'list' ? (
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+              {isLoading ? (
+                <div className="p-12 text-center">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" />
+                  <p className="mt-3 text-gray-500">Chargement des rendez-vous...</p>
+                </div>
+              ) : appointments.length === 0 ? (
+                <div className="p-12 text-center">
+                  <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-500">Aucun rendez-vous trouvé</p>
+                  <p className="text-sm text-gray-400 mt-1">Modifiez les filtres ou créez un nouveau RDV</p>
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                        <tr>
+                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Patient</th>
+                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Médecin</th>
+                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Date & Heure</th>
+                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Statut</th>
+                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {appointments.map(appt => (
+                          <tr key={appt.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                                  {appt.patient.firstname[0]}
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-gray-900 dark:text-white">
+                                    {appt.patient.firstname} {appt.patient.lastname}
+                                  </p>
+                                  <p className="text-sm text-gray-500 dark:text-gray-400">{appt.patient.phone || '—'}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <Stethoscope className="w-4 h-4 text-indigo-600" />
+                                <span className="font-medium text-gray-900 dark:text-white">
+                                  Dr. {appt.medecin.firstname} {appt.medecin.lastname}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-gray-400" />
+                                <span className="font-medium text-gray-900 dark:text-white">{formatDate(appt.date, 'dd MMM yyyy')}</span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Clock className="w-4 h-4 text-gray-400" />
+                                <span className="text-sm text-gray-600 dark:text-gray-400">{formatDate(appt.date, 'HH:mm')}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                                appt.status === 'PROGRAMME'
+                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                                  : appt.status === 'TERMINE'
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                  : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                              }`}>
+                                {appt.status_display || appt.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => { setEditingAppointment(appt); setShowModal(true); }}
+                                  className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(appt.id!)}
+                                  className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-800">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                        Page {currentPage} sur {totalPages} ({totalItems} RDV)
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          className="p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 hover:bg-white dark:hover:bg-gray-700 transition-colors"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                          className="p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 hover:bg-white dark:hover:bg-gray-700 transition-colors"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ) : (
+            <CalendarView />
+          )}
+
+          {/* Modale */}
+          {showModal && (
+            <AppointmentModal
+              appointment={editingAppointment || undefined}
+              onClose={() => {
+                setShowModal(false);
+                setEditingAppointment(null);
+              }}
+              mutate={mutate}
+            />
+          )}
+        </div>
       </div>
     </>
   );

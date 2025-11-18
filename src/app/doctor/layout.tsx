@@ -20,7 +20,8 @@ import {
 
 const menuItems = [
   { href: '/doctor/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-  { href: '/doctor/consultations', label: 'Consultations', icon: Calendar },
+  { href: '/doctor/agenda', label: 'agenda', icon: Calendar },
+   { href: '/doctor/consultations', label: 'consultations', icon: Calendar },
   { href: '/doctor/ordonnances', label: 'Ordonnances', icon: FileText },
   { href: '/doctor/patients', label: 'Patients', icon: UserPlus },
   { href: '/doctor/traitements', label: 'Traitements', icon: Activity },
