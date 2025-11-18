@@ -24,78 +24,89 @@ interface Appointment {
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
-  useEffect(() => {
-    // Si session en cours de chargement → attendre
-    if (status === 'loading') return;
+ useEffect(() => {
+  if (status === 'loading') return;
+  if (!session?.accessToken) {
+    setError('Session non disponible');
+    setLoading(false);
+    return;
+  }
 
-    // Si pas de token → erreur
-    if (!session?.accessToken) {
-      setError('Session non disponible');
-      setLoading(false);
-      return;
-    }
+  let ws: WebSocket | null = null;
+  let reconnectTimeout: NodeJS.Timeout;
 
-    // Fermer ancienne connexion si existe
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
+ const connectWebSocket = () => {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+  
+  // CETTE LIGNE CORRIGÉE (elle enlève http/https + les slashes en trop)
+  const cleanHost = backendUrl
+    .replace(/^https?:\/\//, '')   
+    .replace(/\/+$/, '');         
 
-    // Créer nouvelle connexion
-    const ws = new WebSocket(`ws://localhost:8000/ws/doctor/agenda/?token=${session.accessToken}`);
-    wsRef.current = ws;
+  const wsProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
+  const wsUrl = `${wsProtocol}://${cleanHost}/ws/doctor/agenda/?token=${session.accessToken}`;
+
+  console.log('Connexion WebSocket →', wsUrl);
+
+  ws = new WebSocket(wsUrl);
+
 
     ws.onopen = () => {
-      console.log('WebSocket connecté');
+      console.log('WebSocket connecté !');
       setConnected(true);
       setError('');
     };
 
     ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+      const data = JSON.parse(event.data);
 
-        if (data.type === 'initial_data') {
-          setAppointments(data.appointments || []);
-          setLoading(false);
-        }
+      if (data.type === 'initial_data') {
+        setAppointments(data.appointments || []);
+        setLoading(false);
+      }
 
-        if (data.type === 'update') {
-          const appt = data.appointment;
-          setAppointments(prev => {
-            const exists = prev.find(a => a.id === appt.id);
-            if (exists) {
-              return prev.map(a => a.id === appt.id ? appt : a);
-            }
-            return [...prev, appt].sort((a, b) => a.date.localeCompare(b.date));
-          });
-        }
-      } catch (e) {
-        console.error('JSON invalide:', e);
+      if (data.type === 'update') {
+        const appt = data.appointment;
+        setAppointments(prev => {
+          const exists = prev.some(a => a.id === appt.id);
+          if (exists) {
+            return prev.map(a => a.id === appt.id ? appt : a);
+          }
+          return [...prev, appt].sort((a, b) => a.date.localeCompare(b.date));
+        });
       }
     };
 
-    ws.onerror = () => {
-      console.error('WebSocket erreur');
-      setError('Connexion échouée');
+    ws.onerror = (e) => {
+      console.error('WebSocket erreur', e);
+      setError('Connexion perdue...');
       setConnected(false);
-      setLoading(false);
     };
 
-    ws.onclose = () => {
-      console.log('WebSocket fermé');
+    ws.onclose = (event) => {
+      console.log('WebSocket fermé', event.code, event.reason);
       setConnected(false);
       wsRef.current = null;
-    };
 
-    // Nettoyage
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
+      // RECONNEXION AUTOMATIQUE SI TOKEN TOUJOURS VALIDE
+      if (!event.wasClean || event.code === 1006) {
+        reconnectTimeout = setTimeout(() => {
+          if (session?.accessToken) {
+            console.log('Tentative de reconnexion...');
+            connectWebSocket();
+          }
+        }, 3000);
       }
     };
-  }, [session?.accessToken, status]);
+  };
 
+  connectWebSocket();
+
+  return () => {
+    clearTimeout(reconnectTimeout);
+    if (ws) ws.close();
+  };
+}, [session?.accessToken, status]); // Reconnecte si le token change 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PROGRAMME': return 'bg-blue-100 text-blue-800 border-blue-200';
