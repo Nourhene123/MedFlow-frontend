@@ -1,13 +1,15 @@
 'use client';
 
+import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
-import { FlaskConical } from "lucide-react";
+import { FlaskConical, HeartPulse } from "lucide-react";
 
 const API_BASE =
   (process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "http://localhost:8000") + "/api/";
 const ANALYSES_API = `${API_BASE}patient/analyses/`;
+const PROFILE_API = `${API_BASE}patient/profile/`;
 
 type PatientDoctor = {
   fullname: string;
@@ -20,6 +22,22 @@ type PatientAnalysis = {
   content: string;
   pdf_url: string;
   created_at: string;
+};
+
+type PatientProfile = {
+  id: number;
+  firstname: string;
+  lastname: string;
+  fiche_medicale: {
+    taille: number | null;
+    poids: number | null;
+    allergies: string;
+    antecedents_medicaux: string;
+    groupe_sanguin: string;
+    history?: string;
+    notes?: string;
+    updated_at: string;
+  } | null;
 };
 
 type FetchKey = [string, string];
@@ -62,12 +80,85 @@ export default function AnalysesPage() {
     }
   );
 
+  const { data: profile, isLoading: profileLoading } = useSWR<PatientProfile>(
+    accessToken ? [PROFILE_API, accessToken] : null,
+    authedFetcher,
+    {
+      onError: (err) => toast.error(err.message),
+    }
+  );
+
+  const fiche = profile?.fiche_medicale;
+
+  const ficheStats = [
+    { label: "Taille", value: fiche?.taille ? `${fiche.taille} cm` : "Non renseignée" },
+    { label: "Poids", value: fiche?.poids ? `${fiche.poids} kg` : "Non renseigné" },
+    { label: "Groupe sanguin", value: fiche?.groupe_sanguin || "Non renseigné" },
+  ];
+
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto space-y-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Analyses</h1>
         <p className="text-gray-600 mt-2">Consultez vos analyses médicales</p>
       </div>
+
+      <section className="rounded-3xl bg-gradient-to-br from-[#0D9488] via-[#0B7F75] to-[#04524C] text-white shadow-[0_20px_45px_rgba(13,148,136,0.35)] p-6 md:p-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-2xl bg-white/15">
+              <HeartPulse className="w-8 h-8" />
+            </div>
+            <div>
+              <p className="text-sm uppercase tracking-widest text-white/70">Espace fiche médicale</p>
+              <h2 className="text-2xl font-bold mt-1">Suivi personnalisé</h2>
+              <p className="text-sm md:text-base text-white/80 mt-2 max-w-xl">
+                Retrouvez vos informations médicales essentielles (allergies, antécédents, groupe sanguin…)
+                et gardez-les à jour pour aider vos médecins à mieux vous prendre en charge.
+              </p>
+              <p className="text-xs text-white/70 mt-2">
+                Dernière mise à jour : {fiche?.updated_at ? formatDate(fiche.updated_at) : "Non renseignée"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 min-w-[220px]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {ficheStats.map((stat) => (
+                <div key={stat.label} className="bg-white/10 rounded-2xl px-4 py-3 backdrop-blur">
+                  <p className="text-xs uppercase tracking-wide text-white/70">{stat.label}</p>
+                  <p className="text-lg font-semibold">{profileLoading ? "…" : stat.value}</p>
+                </div>
+              ))}
+            </div>
+            <Link
+              href="/patient/parametres"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white text-[#04524C] font-semibold py-3 px-6 transition hover:translate-y-0.5"
+            >
+              Mettre à jour ma fiche
+            </Link>
+          </div>
+        </div>
+
+        {fiche && (
+          <div className="mt-6 grid md:grid-cols-2 gap-4 text-sm">
+            <div className="bg-white/10 rounded-2xl p-4">
+              <p className="text-xs uppercase tracking-widest text-white/70 mb-1">Allergies</p>
+              <p className="text-white/90">{fiche.allergies || "Non renseignées"}</p>
+            </div>
+            <div className="bg-white/10 rounded-2xl p-4">
+              <p className="text-xs uppercase tracking-widest text-white/70 mb-1">Antécédents médicaux</p>
+              <p className="text-white/90">{fiche.antecedents_medicaux || "Non renseignés"}</p>
+            </div>
+            {fiche.notes && (
+              <div className="bg-white/10 rounded-2xl p-4 md:col-span-2">
+                <p className="text-xs uppercase tracking-widest text-white/70 mb-1">Notes</p>
+                <p className="text-white/90">{fiche.notes}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       <div className="border-[0.5px] border-[#AFA9A9] rounded-[15px] shadow-[0_0_6px_0_#68BA7F] p-6">
         <div className="flex justify-center mb-6">
