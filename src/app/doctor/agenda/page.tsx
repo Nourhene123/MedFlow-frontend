@@ -183,7 +183,7 @@ interface Appointment {
               Consultations du jour ({todayAppointments.length})
             </h2>
             {todayAppointments.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">Aucune consultation aujourd'hui</p>
+              <p className="text-center text-gray-500 py-8">Aucune consultation aujourd&#39;hui</p>
             ) : (
               <div className="space-y-3">
                 {todayAppointments.map(appt => (

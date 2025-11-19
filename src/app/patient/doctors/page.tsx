@@ -70,7 +70,7 @@ export default function DoctorsPage() {
           Médecins
         </h1>
         <p className="text-slate-500 mt-2 max-w-2xl">
-          Passez d'un coup d'œil à vos médecins habituels ou explorez l'ensemble du réseau de votre clinique.
+          Passez d&rsquo;un coup d&rsquo;œil à vos médecins habituels ou explorez l&rsquo;ensemble du réseau de votre clinique.
         </p>
       </div>
 
