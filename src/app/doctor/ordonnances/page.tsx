@@ -10,18 +10,37 @@ import { fr } from "date-fns/locale";
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export default function OrdonnancesPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
-  const fetcher = (url: string) =>
-    fetch(url, {
-      headers: { Authorization: `Bearer ${session?.accessToken}` },
-    }).then(r => r.json());
+ const fetcher = (url: string) => {
+    if (!session?.accessToken) {
+      throw new Error("Pas de token");
+    }
+    return fetch(url, {
+      headers: {
+        "Authorization": `Bearer ${session.accessToken}`,
+        "Content-Type": "application/json",
+      },
+    }).then(res => {
+      if (!res.ok) {
+        if (res.status === 401) {
+          // Optionnel : forcer la reconnexion
+          window.location.href = "/login";
+        }
+        throw new Error("Erreur auth");
+      }
+      return res.json();
+    });
+  };
 
   // On récupère toutes les consultations terminées du médecin
-  const { data: appointments = [], isLoading } = useSWR(
-    `${API_BASE}/api/appointments/list/?status=completed`,
-    fetcher
-  );
+ const { data: response = {}, isLoading } = useSWR(
+  `${API_BASE}/api/appointments/list/?status=completed`,
+  fetcher
+);
+
+// Tu extrait le vrai tableau ici
+const appointments = response.results || [];   
 
   // On filtre celles qui ont une ordonnance
   const ordonnances = appointments

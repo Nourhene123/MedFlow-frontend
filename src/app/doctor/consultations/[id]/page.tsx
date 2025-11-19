@@ -138,11 +138,10 @@ export default function ConsultationPage() {
     fetchConsultation();
   }, [id, session?.accessToken, status, router]);
 
- const save = async () => {
+const save = async () => {
   if (!session?.accessToken || !id) return;
 
   try {
-    // 1. Sauvegarde du dossier médical (comme avant)
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/appointments/save-medical-record/`,
       {
@@ -153,41 +152,24 @@ export default function ConsultationPage() {
         },
         body: JSON.stringify({
           appointment: Number(id),
-          ...form,
+          ...form, // ← ici tu envoies déjà diagnostic, traitement, ordonnance, notes, etc.
         }),
       }
     );
 
     if (!res.ok) {
-      toast.error('Erreur lors de la sauvegarde du dossier');
+      const error = await res.json();
+      toast.error(error.error || 'Erreur lors de la sauvegarde');
       return;
     }
 
-    // 2. Si ordonnance remplie → on la crée automatiquement
-    if (form.ordonnance.trim()) {
-      const ordonnanceRes = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/ordonnances/create-from-consultation/`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.accessToken}`,
-          },
-          body: JSON.stringify({
-            appointment_id: Number(id),
-            content: form.ordonnance,
-          }),
-        }
-      );
+    // PLUS BESOIN DE ÇA ↓↓↓
+    // if (form.ordonnance.trim()) { ... appel à /ordonnances/create-from-consultation/ }
 
-      if (!ordonnanceRes.ok) {
-        toast.error('Ordonnance non créée (mais dossier sauvegardé)');
-      }
-    }
-
-    toast.success('Consultation terminée ! Ordonnance générée');
+    toast.success('Consultation terminée avec succès ! Ordonnance enregistrée');
     router.push('/doctor/ordonnances');
   } catch (err) {
+    console.error(err);
     toast.error('Erreur réseau');
   }
 };
