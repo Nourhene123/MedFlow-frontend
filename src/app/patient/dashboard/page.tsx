@@ -1,9 +1,10 @@
 'use client';
 
+import Link from "next/link";
 import { useMemo } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { FlaskConical } from "lucide-react";
+import { FlaskConical, CalendarDays, CreditCard, FileText, ArrowRight, Stethoscope } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import DoctorCard from "../components/DoctorCard";
@@ -207,11 +208,87 @@ export default function PatientDashboard() {
   const userPhone = profileData?.phone || "Non renseigné";
   const userGender = profileData?.gender || "Non renseigné";
 
+  const nextAppointment = appointments[0];
+
+  const statsHighlights = [
+    { label: 'RDV à venir', value: appointments.length, icon: CalendarDays },
+    { label: 'Factures', value: invoices.length, icon: CreditCard },
+    { label: 'Analyses', value: analyses.length, icon: FlaskConical },
+  ];
+
+  const quickActions = [
+    { href: '/patient/doctors', label: 'Trouver un médecin', icon: Stethoscope },
+    { href: '/patient/analyses', label: 'Voir mes analyses', icon: FlaskConical },
+    { href: '/patient/factures', label: 'Suivre mes paiements', icon: CreditCard },
+    { href: '/patient/parametres', label: 'Mettre à jour mon profil', icon: FileText },
+  ];
+
   return (
-    <div className="max-w-[1204px] mx-auto">
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_449px] gap-6">
+    <div className="max-w-[1204px] mx-auto space-y-8">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0D9488] via-[#0B7F75] to-[#04524C] text-white p-8 shadow-[0_35px_80px_rgba(13,148,136,0.35)]">
+        <div className="absolute inset-y-0 -right-10 w-64 bg-white/10 blur-3xl" aria-hidden />
+        <div className="relative flex flex-col gap-6">
+          <div>
+            <p className="text-sm uppercase tracking-[0.3em] text-white/70">Espace patient</p>
+            <h1 className="text-3xl lg:text-4xl font-semibold mt-2">Bonjour, {userName || 'Patient'}</h1>
+            <p className="text-white/80 mt-2 max-w-2xl">
+              Gérez vos rendez-vous, vos factures et vos documents médicaux depuis un espace fluide et sécurisé.
+            </p>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[minmax(260px,1fr)_minmax(220px,1fr)]">
+            <div className="rounded-2xl bg-white/15 p-5 flex flex-col gap-3">
+              <div className="flex items-center gap-3 text-white/70 text-sm uppercase tracking-wide">
+                <CalendarDays className="w-5 h-5" />
+                Prochain rendez-vous
+              </div>
+              {nextAppointment ? (
+                <div className="flex flex-col gap-1">
+                  <p className="text-xl font-semibold">{nextAppointment.date}</p>
+                  <p className="text-white/80">{nextAppointment.time} • {nextAppointment.doctor}</p>
+                  <p className="text-white/60 text-sm">{nextAppointment.clinic}</p>
+                </div>
+              ) : (
+                <p className="text-white/80">Vous n'avez pas de rendez-vous programmé.</p>
+              )}
+              <Link
+                href="/patient/appointments"
+                className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-white/90 hover:text-white"
+              >
+                Gérer mes rendez-vous <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {statsHighlights.map(({ label, value, icon: Icon }) => (
+                <div key={label} className="rounded-2xl bg-white/10 p-4 backdrop-blur">
+                  <Icon className="w-5 h-5 text-white/80" />
+                  <p className="text-2xl font-semibold mt-3">{value}</p>
+                  <p className="text-xs uppercase tracking-wide text-white/70">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {quickActions.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={label}
+                href={href}
+                className="group flex items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur transition hover:bg-white/20"
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+                <ArrowRight className="w-4 h-4 opacity-0 -translate-x-1 transition group-hover:translate-x-0 group-hover:opacity-100" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-6">
         <div className="space-y-6">
-          <section className="border-[0.5px] border-[#E7E2E2] shadow-[0_0_4px_0_#0D9488] p-6">
+          <section className="rounded-3xl border border-[#E7E2E2] bg-white/90 shadow-[0_20px_45px_rgba(15,23,42,0.08)] p-6">
             <div className="flex justify-center mb-6">
               <div className="inline-flex px-6 py-2 justify-center items-center rounded-[15px] bg-gradient-to-r from-[#0D9488] via-[#0D9488] to-[#00746E] shadow-[0_6px_10px_0_#68BA7F]">
                 <h2 className="text-white text-xl font-bold">Prochains RDV</h2>
@@ -232,13 +309,16 @@ export default function PatientDashboard() {
             </div>
 
             <div className="flex justify-center mt-6">
-              <button className="px-8 py-2 rounded-[10px] bg-[#68BA7F] shadow-[0_0_6px_0_#000] text-[#FEFEFE] text-[15px] font-medium hover:bg-[#5AA970] transition-colors">
-                Book Appointment
-              </button>
+              <Link
+                href="/patient/appointments"
+                className="px-8 py-2 rounded-[10px] bg-[#68BA7F] shadow-[0_15px_30px_rgba(104,186,127,0.35)] text-[#FEFEFE] text-[15px] font-medium hover:bg-[#5AA970] transition-colors"
+              >
+                Planifier un rendez-vous
+              </Link>
             </div>
           </section>
 
-          <section className="border-[0.5px] border-[#AFA9A9] rounded-[15px] shadow-[0_0_6px_0_#68BA7F] p-6">
+          <section className="rounded-3xl border border-[#E6E0E0] bg-white/90 shadow-[0_20px_45px_rgba(15,23,42,0.08)] p-6">
             <div className="flex justify-center mb-6">
               <div className="inline-flex px-6 py-2 justify-center items-center rounded-[15px] bg-gradient-to-r from-[#0D9488] via-[#0D9488] to-[#00746E] shadow-[0_6px_10px_0_#68BA7F]">
                 <h2 className="text-white text-xl font-bold">Factures</h2>
@@ -287,7 +367,7 @@ export default function PatientDashboard() {
             </div>
           </section>
 
-          <section className="border-[0.5px] border-[#AFA9A9] rounded-[15px] shadow-[0_0_6px_0_#68BA7F] p-6">
+          <section className="rounded-3xl border border-[#E6E0E0] bg-white/90 shadow-[0_20px_45px_rgba(15,23,42,0.08)] p-6">
             <div className="flex justify-center mb-6">
               <div className="inline-flex px-6 py-2 justify-center items-center rounded-[15px] bg-gradient-to-r from-[#0D9488] via-[#0D9488] to-[#00746E] shadow-[0_6px_10px_0_#68BA7F]">
                 <h2 className="text-white text-xl font-bold">Rapport Médicaux</h2>
@@ -327,10 +407,19 @@ export default function PatientDashboard() {
                   </div>
                 ))
               ) : (
-                <p className="text-center text-sm text-gray-500">Aucun rapport médical disponible.</p>
+                <div className="flex flex-col items-center justify-center p-6">
+                  <img src="/images/medical-report.svg" alt="Medical Report" className="w-24 h-24 mb-4" />
+                  <p className="text-center text-sm text-gray-500">Aucun rapport médical disponible.</p>
+                  <button
+                    className="px-6 py-1 rounded-[10px] bg-[#68BA7F] shadow-[0_15px_30px_rgba(104,186,127,0.35)] text-[#FEFEFE] text-[15px] font-medium hover:bg-[#5AA970] transition-colors"
+                  >
+                    Demander un rapport médical
+                  </button>
+                </div>
               )}
             </div>
           </section>
+
         </div>
 
         <div className="space-y-6">
@@ -338,7 +427,7 @@ export default function PatientDashboard() {
             <h2 className="text-2xl lg:text-[30px] font-extrabold text-[#7D7777] text-center mb-4">
               Doctors
             </h2>
-            <div className="border border-[#C6C2C2] rounded-[20px] shadow-[0_0_4px_0_#0D9488] p-4 max-h-[754px] overflow-y-auto space-y-4">
+            <div className="border border-[#C6C2C2] rounded-[24px] bg-white/90 shadow-[0_20px_45px_rgba(15,23,42,0.08)] p-4 max-h-[754px] overflow-y-auto space-y-4">
               {doctorsLoading ? (
                 <p className="text-center text-sm text-gray-500">Chargement des médecins…</p>
               ) : doctorsData.length > 0 ? (
@@ -356,7 +445,7 @@ export default function PatientDashboard() {
               <div className="flex justify-center pt-2">
                 <a
                   href="/patient/doctors"
-                  className="px-6 py-1 rounded-[10px] bg-[#68BA7F] shadow-[0_0_6px_0_#000] text-[#FEFEFE] text-[15px] font-medium hover:bg-[#5AA970] transition-colors"
+                  className="px-6 py-1 rounded-[10px] bg-[#68BA7F] shadow-[0_15px_30px_rgba(104,186,127,0.35)] text-[#FEFEFE] text-[15px] font-medium hover:bg-[#5AA970] transition-colors"
                 >
                   Voir tout
                 </a>
@@ -364,7 +453,7 @@ export default function PatientDashboard() {
             </div>
           </section>
 
-          <section className="border-[0.5px] border-[#AFA9A9] rounded-[15px] shadow-[0_0_6px_0_#68BA7F] p-6">
+          <section className="rounded-3xl border border-[#E6E0E0] bg-white/90 shadow-[0_20px_45px_rgba(15,23,42,0.08)] p-6">
             <div className="flex justify-center mb-6">
               <div className="inline-flex px-6 py-2 justify-center items-center rounded-[15px] bg-gradient-to-r from-[#0D9488] via-[#0D9488] to-[#00746E] shadow-[0_6px_10px_0_#68BA7F]">
                 <h2 className="text-white text-xl font-bold">Mes Informations</h2>
