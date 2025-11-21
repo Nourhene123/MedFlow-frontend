@@ -4,13 +4,28 @@ import { useParams } from 'next/navigation';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+
 import { Calendar, User, FileText, Stethoscope } from 'lucide-react';
 
 const fetcher = (url: string, token: string) =>
   fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   }).then((res) => res.json());
+
+interface ConsultationHistoryItem {
+  id: number;
+  date: string;
+  motif?: string;
+  medical_record?: {
+    poids?: string;
+    taille?: string;
+    tension?: string;
+    temperature?: string;
+    diagnostic?: string;
+    ordonnance?: string;
+    notes?: string;
+  };
+}
 
 export default function PatientHistoryPage() {
   const { id } = useParams() as { id: string };
@@ -69,8 +84,8 @@ export default function PatientHistoryPage() {
         ) : (
           <div className="space-y-6">
             {history
-              .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
-              .map((consult: any) => (
+              .sort((a: ConsultationHistoryItem, b: ConsultationHistoryItem) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .map((consult: ConsultationHistoryItem) => (
                 <div key={consult.id} className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
                   <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
                     <div className="flex justify-between items-center">

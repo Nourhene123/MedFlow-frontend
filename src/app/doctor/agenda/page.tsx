@@ -3,8 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
-import { Calendar, Clock, User, AlertCircle } from 'lucide-react';
 
 interface Appointment {
   id: string;
@@ -71,19 +69,14 @@ export default function DoctorAgendaPage() {
         .replace(/^https?:\/\//, '')   
         .replace(/\/+$/, '');         
 
-      const wsProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
-      const wsUrl = `${wsProtocol}://${cleanHost}/ws/doctor/agenda/?token=${session.accessToken}`;
+      const socketProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
+      const wsUrl = `${socketProtocol}://${cleanHost}/ws/doctor/agenda/?token=${session.accessToken}`;
 
       console.log('Connexion WebSocket →', wsUrl);
 
       ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
-      ws.onopen = () => {
-        console.log('WebSocket connecté !');
-        setConnected(true);
-        setError('');
-      };
       ws.onopen = () => {
         console.log('WebSocket connecté !');
         setConnected(true);
@@ -122,10 +115,6 @@ export default function DoctorAgendaPage() {
         console.log('WebSocket fermé', event.code, event.reason);
         setConnected(false);
         wsRef.current = null;
-      ws.onclose = (event) => {
-        console.log('WebSocket fermé', event.code, event.reason);
-        setConnected(false);
-        wsRef.current = null;
 
         // RECONNEXION AUTOMATIQUE SI TOKEN TOUJOURS VALIDE
         if (!event.wasClean || event.code === 1006) {
@@ -137,9 +126,8 @@ export default function DoctorAgendaPage() {
           }, 3000);
         }
       };
-    };}
+    };
 
-    connectWebSocket();
     connectWebSocket();
 
     return () => {
@@ -311,7 +299,7 @@ export default function DoctorAgendaPage() {
                   <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Aujourd'hui
+                  Aujourd&apos;hui
                 </h2>
                 <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-bold text-lg">
                   {todayAppointments.length} {todayAppointments.length === 1 ? 'consultation' : 'consultations'}
@@ -329,7 +317,7 @@ export default function DoctorAgendaPage() {
               ) : (
                 <div className="space-y-4">
                   {todayAppointments.map((appt, index) => {
-                    const statusInfo = getStatusInfo(appt.status);
+                    const statusInfo = getStatusColor(appt.status);
                     return (
                       <button
                         key={appt.id}
@@ -453,7 +441,7 @@ export default function DoctorAgendaPage() {
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-blue-100">Total aujourd'hui</span>
+                  <span className="text-blue-100">Total aujourd&apos;hui</span>
                   <span className="text-2xl font-bold">{todayAppointments.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
