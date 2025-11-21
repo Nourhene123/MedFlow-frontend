@@ -8,7 +8,6 @@ import { Calendar, FileText, Users, Activity, Stethoscope, Clock } from "lucide-
 import { CardStats } from "@/components/doctor/CardStats";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 
 // URL de ton backend Django (à mettre dans .env.local)
 const API_BASE = `${process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "")}/api/appointments`;
@@ -62,14 +61,14 @@ export default function DoctorDashboard() {
             ? "Chargement de vos données..."
             : hasError
             ? "Erreur de chargement des données"
-            : `Vous avez ${summary?.today_consultations || 0} consultation${summary?.today_consultations > 1 ? "s" : ""} prévue${summary?.today_consultations > 1 ? "s" : ""} aujourd'hui.`}
+            : `Vous avez ${summary?.today_consultations || 0} consultation${summary?.today_consultations > 1 ? "s" : ""} prévue${summary?.today_consultations > 1 ? "s" : ""} aujour&#39;hui.`}
         </p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <CardStats
-          title="Consultations aujourd'hui"
+          title="Consultations aujourdhui"
           value={isLoading ? "..." : summary?.today_consultations ?? 0}
           icon={Calendar}
           color="blue"
@@ -176,7 +175,7 @@ export default function DoctorDashboard() {
 
       {todayAppointments.length === 0 && !isLoading && (
         <div className="text-center py-12 text-gray-500">
-          Aucune consultation prévue aujourd'hui. Profitez-en pour vous reposer !
+          Aucune consultation prévue aujourd&apos;hui. Profitez-en pour vous reposer !
         </div>
       )}
     </div>

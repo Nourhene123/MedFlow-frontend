@@ -6,8 +6,9 @@ import useSWR from 'swr';
 import { fr } from 'date-fns/locale';
 import {
   Calendar, Clock, Stethoscope, Search, ChevronLeft, ChevronRight,
-  Plus, Edit, Trash2, X, Loader2, Check, AlertCircle
+  Plus, Edit, Trash2, DollarSign, X, Loader2, Check, AlertCircle
 } from 'lucide-react';
+
 import { useSession } from 'next-auth/react';
 import { toast, Toaster } from 'sonner';
 import {
@@ -52,6 +53,7 @@ interface Doctor {
   firstname: string;
   lastname: string;
   speciality?: string;
+  consultation_fee?: number;
 }
 
 interface Appointment {
@@ -63,6 +65,8 @@ interface Appointment {
   notes?: string;
   status: string;
   status_display?: string;
+  facture_status?: string | null;
+  is_paid?: boolean;
 }
 
 interface Slot {
@@ -75,9 +79,10 @@ interface AppointmentModalProps {
   appointment?: Appointment;
   onClose: () => void;
   mutate: () => void;
+  onCreateSuccess?: (appointment: Appointment) => void;
 }
 
-function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProps) {
+function AppointmentModal({ appointment, onClose, mutate, onCreateSuccess }: AppointmentModalProps) {
   const { data: session } = useSession();
   const isEdit = !!appointment;
 
@@ -210,9 +215,15 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
         throw new Error(err.detail || 'Erreur serveur');
       }
 
+      const data = await res.json().catch(() => null);
+
+      const createdAppointment = !isEdit && data ? (data as Appointment) : null;
       notify('success', isEdit ? 'RDV modifié avec succès' : 'RDV créé avec succès');
       onClose();
       mutate();
+      if (createdAppointment) {
+        onCreateSuccess?.(createdAppointment);
+      }
     } catch (error: any) {
       notify('error', error.message || 'Erreur inconnue');
     } finally {
@@ -415,6 +426,201 @@ function AppointmentModal({ appointment, onClose, mutate }: AppointmentModalProp
   );
 }
 
+interface PaymentModalProps {
+  appointment: Appointment;
+  onClose: () => void;
+  mutate: () => void;
+}
+
+function PaymentModal({ appointment, onClose, mutate }: PaymentModalProps) {
+  const { data: session } = useSession();
+  const [form, setForm] = useState({
+    amount:
+      appointment.medecin?.consultation_fee != null
+        ? String(appointment.medecin.consultation_fee)
+        : '',
+    payment_method: 'CASH',
+    status: 'PAID',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const newErrors: Record<string, string> = {};
+    if (!form.amount) {
+      newErrors.amount = 'Montant requis';
+    } else if (Number.isNaN(Number(form.amount))) {
+      newErrors.amount = 'Montant invalide';
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    setIsSubmitting(true);
+    try {
+      const payload: Record<string, unknown> = {
+        payment_method: form.payment_method,
+        status: form.status,
+      };
+      if (form.amount && !Number.isNaN(Number(form.amount))) {
+        payload.amount = form.amount;
+      }
+
+      const res = await fetch(
+        `${API_BASE}invoices/appointments/${appointment.id}/pay/`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session?.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Erreur serveur');
+      }
+
+      notify('success', 'Paiement enregistré avec succès');
+      onClose();
+      mutate();
+    } catch (error: any) {
+      notify('error', error.message || 'Erreur inconnue');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-lg w-full border border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            Payer le rendez-vous
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
+            <p className="font-semibold text-gray-900 dark:text-white">
+              {appointment.patient.firstname} {appointment.patient.lastname}
+            </p>
+            <p>
+              Dr. {appointment.medecin.firstname} {appointment.medecin.lastname}
+            </p>
+            <p>
+              {formatDate(appointment.date, 'dd MMM yyyy')} à{' '}
+              {formatDate(appointment.date, 'HH:mm')}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Montant (DT)
+            </label>
+            <input
+              type="number"
+              name="amount"
+              value={form.amount}
+              onChange={handleChange}
+              step="0.01"
+              min="0"
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-800 dark:text-white dark:border-gray-600 transition-all ${
+                errors.amount ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {errors.amount && (
+              <p className="mt-1.5 text-sm text-red-600 font-medium">
+                {errors.amount}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Méthode de paiement
+              </label>
+              <select
+                name="payment_method"
+                value={form.payment_method}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-800 dark:text-white transition-all"
+              >
+                <option value="CASH">Espèces</option>
+                <option value="CARD">Carte</option>
+                <option value="TRANSFER">Virement</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Statut
+              </label>
+              <select
+                name="status"
+                value={form.status}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-800 dark:text-white transition-all"
+              >
+                <option value="PAID">Payée</option>
+                <option value="UNPAID">Non payée</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-semibold hover:shadow-lg hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Validation...
+                </>
+              ) : (
+                <>
+                  <DollarSign className="w-4 h-4" />
+                  Confirmer le paiement
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // === PAGE PRINCIPALE ===
 export default function AppointmentsPage() {
   const { data: session } = useSession();
@@ -424,6 +630,7 @@ export default function AppointmentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [payingAppointment, setPayingAppointment] = useState<Appointment | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const itemsPerPage = 10;
 
@@ -566,7 +773,7 @@ export default function AppointmentsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setViewMode(viewMode === 'list' ? 'calendar' : 'list')}
-                className="px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+                className="px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 {viewMode === 'list' ? (
                   <>
@@ -649,12 +856,20 @@ export default function AppointmentsPage() {
                           <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Médecin</th>
                           <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Date & Heure</th>
                           <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Statut</th>
+                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Paiement</th>
                           <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {appointments.map(appt => (
-                          <tr key={appt.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                          <tr
+                            key={appt.id}
+                            className={`transition-colors ${
+                              appt.is_paid
+                                ? 'bg-emerald-50/60 dark:bg-emerald-900/20 ring-1 ring-emerald-100 dark:ring-emerald-800'
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                            }`}
+                          >
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
@@ -687,7 +902,7 @@ export default function AppointmentsPage() {
                               </div>
                             </td>
                             <td className="px-6 py-4">
-                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                              <span className={`inline-flex items-center px-3 py-0.5 rounded-full text-xs font-bold ${
                                 appt.status === 'PROGRAMME'
                                   ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                                   : appt.status === 'TERMINE'
@@ -696,6 +911,25 @@ export default function AppointmentsPage() {
                               }`}>
                                 {appt.status_display || appt.status}
                               </span>
+                              {typeof appt.is_paid !== 'undefined' && (
+                                <div className="mt-2">
+                                  <span
+                                    className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-semibold ${
+                                      appt.is_paid
+                                        ? 'bg-emerald-600 text-white'
+                                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
+                                    }`}
+                                  >
+                                    {appt.is_paid ? (
+                                      <>
+                                        <Check className="w-3.5 h-3.5" /> Payé
+                                      </>
+                                    ) : (
+                                      'Non payé'
+                                    )}
+                                  </span>
+                                </div>
+                              )}
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-2">
@@ -704,6 +938,13 @@ export default function AppointmentsPage() {
                                   className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                                 >
                                   <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => setPayingAppointment(appt)}
+                                  disabled={appt.is_paid}
+                                  className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <DollarSign className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => handleDelete(appt.id!)}
@@ -758,6 +999,16 @@ export default function AppointmentsPage() {
                 setShowModal(false);
                 setEditingAppointment(null);
               }}
+              mutate={mutate}
+              onCreateSuccess={(newAppointment) => {
+                setPayingAppointment(newAppointment);
+              }}
+            />
+          )}
+          {payingAppointment && (
+            <PaymentModal
+              appointment={payingAppointment}
+              onClose={() => setPayingAppointment(null)}
               mutate={mutate}
             />
           )}

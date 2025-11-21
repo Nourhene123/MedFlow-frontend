@@ -187,7 +187,7 @@ export default function PatientDashboard() {
   const invoices = invoicesData.map((invoice) => ({
     id: invoice.id,
     number: `#${invoice.id}`,
-    amount: invoice.amount?.toFixed(2) ?? "0.00",
+    amount: Number(invoice.amount)?.toFixed(2) ?? "0.00",
     date: formatDate(invoice.created_at),
   }));
 
