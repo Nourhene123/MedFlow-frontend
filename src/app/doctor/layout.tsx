@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronRight,
   UserPlus,
+  Users,
 } from 'lucide-react';
 
 const menuItems = [
@@ -23,7 +24,7 @@ const menuItems = [
   { href: '/doctor/agenda', label: 'agenda', icon: Calendar },
    { href: '/doctor/consultations', label: 'consultations', icon: Calendar },
   { href: '/doctor/ordonnances', label: 'Ordonnances', icon: FileText },
-  { href: '/doctor/patients', label: 'Patients', icon: UserPlus },
+  { href: '/doctor/patients',    label: 'Mes Patients',    icon: Users },
   { href: '/doctor/traitements', label: 'Traitements', icon: Activity },
 ];
 
