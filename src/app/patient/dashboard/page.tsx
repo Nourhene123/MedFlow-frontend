@@ -249,7 +249,7 @@ export default function PatientDashboard() {
                   <p className="text-white/60 text-sm">{nextAppointment.clinic}</p>
                 </div>
               ) : (
-                <p className="text-white/80">Vous n'avez pas de rendez-vous programmé.</p>
+                <p className="text-white/80">Vous n avez pas de rendez-vous programme.</p>
               )}
               <Link
                 href="/patient/appointments"

@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { Calendar, Clock, User, AlertCircle } from 'lucide-react';
 
 interface Appointment {
@@ -15,98 +14,99 @@ interface Appointment {
   patient_id: string;
 }
 
-
- export default function DoctorAgendaPage() {
+export default function DoctorAgendaPage() {
   const { data: session, status } = useSession();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
- useEffect(() => {
-  if (status === 'loading') return;
-  if (!session?.accessToken) {
-    setError('Session non disponible');
-    setLoading(false);
-    return;
-  }
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (!session?.accessToken) {
+      setError('Session non disponible');
+      return;
+    }
 
-  let ws: WebSocket | null = null;
-  let reconnectTimeout: NodeJS.Timeout;
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: NodeJS.Timeout | undefined;
 
- const connectWebSocket = () => {
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-  
-  // CETTE LIGNE CORRIGÉE (elle enlève http/https + les slashes en trop)
-  const cleanHost = backendUrl
-    .replace(/^https?:\/\//, '')   
-    .replace(/\/+$/, '');         
+    const connectWebSocket = () => {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+      
+      const cleanHost = backendUrl
+        .replace(/^https?:\/\//, '')   
+        .replace(/\/+$/, '');         
 
-  const wsProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
-  const wsUrl = `${wsProtocol}://${cleanHost}/ws/doctor/agenda/?token=${session.accessToken}`;
+      const wsProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
+      const wsUrl = `${wsProtocol}://${cleanHost}/ws/doctor/agenda/?token=${session.accessToken}`;
 
-  console.log('Connexion WebSocket →', wsUrl);
+      console.log('Connexion WebSocket →', wsUrl);
 
-  ws = new WebSocket(wsUrl);
+      ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
+      ws.onopen = () => {
+        console.log('WebSocket connecté !');
+        setConnected(true);
+        setError('');
+      };
 
-    ws.onopen = () => {
-      console.log('WebSocket connecté !');
-      setConnected(true);
-      setError('');
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'initial_data') {
+          setAppointments(data.appointments || []);
+          return;
+        }
+
+        if (data.type === 'update') {
+          const appt = data.appointment as Appointment;
+          setAppointments((prev) => {
+            const exists = prev.some((a) => a.id === appt.id);
+            if (exists) {
+              return prev
+                .map((a) => (a.id === appt.id ? appt : a))
+                .sort((a, b) => a.date.localeCompare(b.date));
+            }
+            return [...prev, appt].sort((a, b) => a.date.localeCompare(b.date));
+          });
+        }
+      };
+
+      ws.onerror = (e) => {
+        console.error('WebSocket erreur', e);
+        setError('Connexion perdue...');
+        setConnected(false);
+      };
+
+      ws.onclose = (event) => {
+        console.log('WebSocket fermé', event.code, event.reason);
+        setConnected(false);
+        wsRef.current = null;
+
+        // RECONNEXION AUTOMATIQUE SI TOKEN TOUJOURS VALIDE
+        if (!event.wasClean || event.code === 1006) {
+          reconnectTimeout = setTimeout(() => {
+            if (session?.accessToken) {
+              console.log('Tentative de reconnexion...');
+              connectWebSocket();
+            }
+          }, 3000);
+        }
+      };
     };
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+    connectWebSocket();
 
-      if (data.type === 'initial_data') {
-        setAppointments(data.appointments || []);
-        setLoading(false);
+    return () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
       }
-
-      if (data.type === 'update') {
-        const appt = data.appointment;
-        setAppointments(prev => {
-          const exists = prev.some(a => a.id === appt.id);
-          if (exists) {
-            return prev.map(a => a.id === appt.id ? appt : a);
-          }
-          return [...prev, appt].sort((a, b) => a.date.localeCompare(b.date));
-        });
-      }
+      wsRef.current?.close();
     };
+  }, [session?.accessToken, status]); // Reconnecte si le token change 
 
-    ws.onerror = (e) => {
-      console.error('WebSocket erreur', e);
-      setError('Connexion perdue...');
-      setConnected(false);
-    };
-
-    ws.onclose = (event) => {
-      console.log('WebSocket fermé', event.code, event.reason);
-      setConnected(false);
-      wsRef.current = null;
-
-      // RECONNEXION AUTOMATIQUE SI TOKEN TOUJOURS VALIDE
-      if (!event.wasClean || event.code === 1006) {
-        reconnectTimeout = setTimeout(() => {
-          if (session?.accessToken) {
-            console.log('Tentative de reconnexion...');
-            connectWebSocket();
-          }
-        }, 3000);
-      }
-    };
-  };
-
-  connectWebSocket();
-
-  return () => {
-    clearTimeout(reconnectTimeout);
-    if (ws) ws.close();
-  };
-}, [session?.accessToken, status]); // Reconnecte si le token change 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PROGRAMME': return 'bg-blue-100 text-blue-800 border-blue-200';

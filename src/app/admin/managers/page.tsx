@@ -16,8 +16,6 @@ import {
   Phone,
   Trash2,
   X,
-  MapPin,
-  Copy,
   User,
 } from 'lucide-react';
 

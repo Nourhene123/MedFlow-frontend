@@ -10,7 +10,13 @@ interface Props {
   trend: string;
 }
 
-const icons = { building: 'Building', users: 'Users', brain: 'Brain', 'user-check': 'User Check' };
+const iconLabels: Record<Props['icon'], string> = {
+  building: 'Building',
+  users: 'Users',
+  brain: 'Brain',
+  'user-check': 'User Check',
+};
+
 const colors = {
   blue: 'from-blue-500 to-blue-600',
   green: 'from-green-500 to-green-600',
@@ -26,7 +32,7 @@ export function CardStats({ title, value, icon, color, trend }: Props) {
     >
       <div className="flex items-center justify-between mb-4">
         <div className={`p-3 rounded-xl bg-gradient-to-br ${colors[color]} text-white`}>
-          <span className="text-2xl">{icon === 'building' ? 'Building' : icon === 'users' ? 'Users' : icon === 'brain' ? 'Brain' : 'User Check'}</span>
+          <span className="text-2xl">{iconLabels[icon]}</span>
         </div>
         <span className="text-sm text-green-600 flex items-center gap-1">
           <TrendingUp className="w-4 h-4" />

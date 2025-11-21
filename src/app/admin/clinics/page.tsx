@@ -56,12 +56,12 @@ const useClinics = (accessToken?: string) => {
 
 export default function ClinicsPage() {
   const [search, setSearch] = useState('');
-  const [editing, setEditing] = useState<Clinic | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<Clinic | null>(null);
   const { data: session } = useSession();
   const accessToken = session?.accessToken;
 
-  const { data: clinics = [], error, isLoading } = useClinics(accessToken);
+  const { data: clinics = [], isLoading } = useClinics(accessToken);
 
   const {
     register,
@@ -109,6 +109,15 @@ export default function ClinicsPage() {
     setShowForm(false);
   };
 
+  const startEdit = (clinic: Clinic) => {
+    setEditing(clinic);
+    setValue('name', clinic.name);
+    setValue('address', clinic.address);
+    setValue('phone', clinic.phone);
+    setValue('email', clinic.email);
+    setShowForm(true);
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm('Voulez-vous vraiment supprimer cette clinique ?')) return;
     try {
@@ -121,15 +130,6 @@ export default function ClinicsPage() {
     } catch {
       toast.error('Échec de la suppression');
     }
-  };
-
-  const startEdit = (c: Clinic) => {
-    setEditing(c);
-    setValue('name', c.name);
-    setValue('address', c.address);
-    setValue('phone', c.phone);
-    setValue('email', c.email);
-    setShowForm(true);
   };
 
   const copyTenantId = (id: string) => {
@@ -152,7 +152,11 @@ export default function ClinicsPage() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => {
-            showForm ? resetForm() : setShowForm(true);
+            if (showForm) {
+              resetForm();
+            } else {
+              setShowForm(true);
+            }
           }}
           className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-shadow"
         >

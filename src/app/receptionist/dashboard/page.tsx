@@ -20,7 +20,17 @@ export default function ReceptionistDashboard() {
       },
     });
     if (!res.ok) throw new Error("Erreur");
-    return res.json();
+    const data = await res.json();
+
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (data && typeof data === "object" && Array.isArray(data.results)) {
+      return data.results;
+    }
+
+    return [];
   };
 
   // === 1. Utilisateur connecté ===
@@ -139,7 +149,7 @@ export default function ReceptionistDashboard() {
         </h3>
         {isLoading ? (
           <p className="text-gray-500">Chargement...</p>
-        ) : todayAppointments.length === 0 ? (
+        ) : !Array.isArray(todayAppointments) || todayAppointments.length === 0 ? (
           <p className="text-gray-500">Aucun RDV aujourd&apos;hui</p>
         ) : (
           <div className="space-y-3">

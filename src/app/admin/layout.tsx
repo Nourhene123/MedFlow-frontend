@@ -7,10 +7,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Building2,
-  Users,
   UserCog,
-  Brain,
-  Settings,
   Menu,
   X,
   LogOut,
