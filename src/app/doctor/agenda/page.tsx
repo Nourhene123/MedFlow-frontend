@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
+import { Calendar, Clock, User, AlertCircle } from 'lucide-react';
 
 interface Appointment {
   id: string;
@@ -75,7 +77,13 @@ export default function DoctorAgendaPage() {
       console.log('Connexion WebSocket →', wsUrl);
 
       ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
+      ws.onopen = () => {
+        console.log('WebSocket connecté !');
+        setConnected(true);
+        setError('');
+      };
       ws.onopen = () => {
         console.log('WebSocket connecté !');
         setConnected(true);
@@ -91,11 +99,13 @@ export default function DoctorAgendaPage() {
         }
 
         if (data.type === 'update') {
-          const appt = data.appointment;
-          setAppointments(prev => {
-            const exists = prev.some(a => a.id === appt.id);
+          const appt = data.appointment as Appointment;
+          setAppointments((prev) => {
+            const exists = prev.some((a) => a.id === appt.id);
             if (exists) {
-              return prev.map(a => a.id === appt.id ? appt : a);
+              return prev
+                .map((a) => (a.id === appt.id ? appt : a))
+                .sort((a, b) => a.date.localeCompare(b.date));
             }
             return [...prev, appt].sort((a, b) => a.date.localeCompare(b.date));
           });
@@ -112,7 +122,12 @@ export default function DoctorAgendaPage() {
         console.log('WebSocket fermé', event.code, event.reason);
         setConnected(false);
         wsRef.current = null;
+      ws.onclose = (event) => {
+        console.log('WebSocket fermé', event.code, event.reason);
+        setConnected(false);
+        wsRef.current = null;
 
+        // RECONNEXION AUTOMATIQUE SI TOKEN TOUJOURS VALIDE
         if (!event.wasClean || event.code === 1006) {
           reconnectTimeout = setTimeout(() => {
             if (session?.accessToken) {
@@ -122,17 +137,20 @@ export default function DoctorAgendaPage() {
           }, 3000);
         }
       };
-    };
+    };}
 
+    connectWebSocket();
     connectWebSocket();
 
     return () => {
-      clearTimeout(reconnectTimeout);
-      if (ws) ws.close();
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      wsRef.current?.close();
     };
-  }, [session?.accessToken, status]);
+  }, [session?.accessToken, status]); // Reconnecte si le token change 
 
-  const getStatusInfo = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'PROGRAMME': 
         return {

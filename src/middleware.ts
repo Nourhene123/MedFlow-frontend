@@ -25,6 +25,9 @@ export default withAuth(
     if (pathname.startsWith("/manager") && role !== "MANAGER") {
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
+    if (pathname.startsWith("/patient") && role !== "PATIENT") {
+      return NextResponse.redirect(new URL("/unauthorized", req.url));
+    }
   },
   {
     callbacks: {
@@ -41,5 +44,6 @@ export const config = {
     "/manager/:path*",
     "/receptionist/:path*",
     "/dashboard",
+    "/patient/:path*",
   ],
 };

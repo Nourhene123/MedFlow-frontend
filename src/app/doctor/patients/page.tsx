@@ -1,6 +1,7 @@
 // app/doctor/patients/page.tsx → VERSION 100% CORRIGÉE
 
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import useSWR from "swr";
 import { Search, Users, Calendar } from "lucide-react";

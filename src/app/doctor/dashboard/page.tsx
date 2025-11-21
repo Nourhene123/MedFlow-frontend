@@ -1,5 +1,6 @@
 // app/doctor/dashboard/page.tsx
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import useSWR from "swr";
 import Link from "next/link";
