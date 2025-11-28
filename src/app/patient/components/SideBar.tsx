@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Users, FlaskConical, FileText, Settings } from "lucide-react";
+import { Home, Users, FlaskConical, FileText, Settings, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ export default function Sidebar({ activeItem }: SidebarProps) {
   const pathname = usePathname();
   const menuItems = [
     { name: "Acceuil", href: "/patient/dashboard", icon: Home },
+    { name: "RDV", href: "/patient/appointments", icon: CalendarDays },
     { name: "Médecins", href: "/patient/doctors", icon: Users },
     { name: "Analyses", href: "/patient/analyses", icon: FlaskConical },
     { name: "Factures", href: "/patient/factures", icon: FileText },
