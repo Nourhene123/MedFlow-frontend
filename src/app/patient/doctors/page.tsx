@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 
 import DoctorDetailCard from "../components/MyDoctors";
 import DoctorDirectoryCard from "../components/DoctorDirectoryCard";
+import BookAppointmentModal from "../components/BookAppointmentModal";
 
 const API_BASE =
   (process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "http://localhost:8000") + "/api/";
@@ -53,6 +54,7 @@ export default function DoctorsPage() {
   const { data: session } = useSession();
   const accessToken = session?.accessToken as string | undefined;
   const [scope, setScope] = useState<"related" | "all">("related");
+  const [selectedDoctor, setSelectedDoctor] = useState<PatientDoctor | null>(null);
 
   const { data: doctors = [], isLoading } = useSWR<PatientDoctor[]>(
     accessToken ? [`${DOCTORS_API}?scope=${scope}`, accessToken] : null,
@@ -112,7 +114,7 @@ export default function DoctorsPage() {
                 yearsOfExperience={doctor.experience_years ?? 0}
                 onNotesClick={() => {}}
                 onAvailabilityClick={() => {}}
-                onBookClick={() => {}}
+                onBookClick={() => setSelectedDoctor(doctor)}
                 onMessageClick={() => {}}
               />
             ) : (
@@ -124,7 +126,7 @@ export default function DoctorsPage() {
                 consultationFee={`${doctor.consultation_fee ?? 0} DT`}
                 yearsOfExperience={doctor.experience_years ?? 0}
                 availability={doctor.availability}
-                onBookClick={() => {}}
+                onBookClick={() => setSelectedDoctor(doctor)}
                 onMessageClick={() => {}}
               />
             )
@@ -133,6 +135,23 @@ export default function DoctorsPage() {
           <p className="text-center text-sm text-gray-500">Aucun médecin associé.</p>
         )}
       </div>
+
+      {selectedDoctor && (
+        <BookAppointmentModal
+          doctor={{
+            id: selectedDoctor.id,
+            fullname:
+              selectedDoctor.fullname ||
+              `${selectedDoctor.firstname || ""} ${selectedDoctor.lastname || ""}`.trim(),
+            firstname: selectedDoctor.firstname,
+            lastname: selectedDoctor.lastname,
+            speciality: selectedDoctor.speciality,
+            consultation_fee: selectedDoctor.consultation_fee,
+            clinique_name: selectedDoctor.clinique_name,
+          }}
+          onClose={() => setSelectedDoctor(null)}
+        />
+      )}
     </div>
   );
 }
