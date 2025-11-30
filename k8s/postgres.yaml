@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medflow-db
+  namespace: medflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: medflow-db
+  template:
+    metadata:
+      labels:
+        app: medflow-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: medflow-config
+            - secretRef:
+                name: medflow-secret
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: medflow-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: medflow-pvc
+  namespace: medflow
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: medflow-db
+  namespace: medflow
+spec:
+  selector:
+    app: medflow-db
+  ports:
+    - port: 5432
+      targetPort: 5432

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medflow-frontend
+  namespace: medflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: medflow-frontend
+  template:
+    metadata:
+      labels:
+        app: medflow-frontend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/api/metrics"
+        prometheus.io/port: "3000"
+    spec:
+      containers:
+        - name: medflow-frontend
+          image: badiimsalmi7/med-flow-frontend:latest 
+          ports:
+            - containerPort: 3000
+          env:
+            - name: BACKEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: medflow-config
+                  key: BACKEND_URL
+            - name: NEXTAUTH_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: medflow-config
+                  key: NEXTAUTH_URL
+            - name: NEXTAUTH_SECRET
+              valueFrom:
+                configMapKeyRef:
+                  name: medflow-config
+                  key: NEXTAUTH_SECRET
