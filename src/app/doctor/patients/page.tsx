@@ -11,6 +11,8 @@ import { useSession } from "next-auth/react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
+
 const fetcher = (url: string, token: string) =>
   fetch(url, {
     headers: {
@@ -30,7 +32,7 @@ export default function PatientsListPage() {
 
   const { data: rawAppointments = [], isLoading } = useSWR(
     session?.accessToken
-      ? [`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/appointments/list/`, session.accessToken]
+      ? [`${API_BASE}/api/appointments/list/`, session.accessToken]
       : null,
     ([url, token]) => fetcher(url, token),
     { revalidateOnFocus: false }

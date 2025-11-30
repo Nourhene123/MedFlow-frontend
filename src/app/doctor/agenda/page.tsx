@@ -67,10 +67,12 @@ export default function DoctorAgendaPage() {
       
       const cleanHost = backendUrl
         .replace(/^https?:\/\//, '')   
-        .replace(/\/+$/, '');         
+        .replace(/\/+$/, '');    
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+     
 
       const socketProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
-      const wsUrl = `${socketProtocol}://${cleanHost}/ws/doctor/agenda/?token=${session.accessToken}`;
+      const wsUrl = `${wsProtocol}://${backendUrl.replace(/^https?:\/\//, '')}/ws/doctor/agenda/?token=${session.accessToken}`;
 
       console.log('Connexion WebSocket →', wsUrl);
 
@@ -105,11 +107,19 @@ export default function DoctorAgendaPage() {
         }
       };
 
-      ws.onerror = (e) => {
-        console.error('WebSocket erreur', e);
-        setError('Connexion perdue...');
-        setConnected(false);
-      };
+      /* ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setError('Connection error. Reconnecting...');
+      setConnected(false);
+      
+      // Try to reconnect after a delay
+      setTimeout(() => {
+        if (wsRef.current?.readyState === WebSocket.CLOSED) {
+          console.log('Attempting to reconnect...');
+          connectWebSocket();
+        }
+      }, 3000);
+    };*/
 
       ws.onclose = (event) => {
         console.log('WebSocket fermé', event.code, event.reason);
@@ -200,7 +210,7 @@ export default function DoctorAgendaPage() {
   const todayAppointments = appointments.filter(a => a.date.startsWith(today));
   const upcoming = appointments
     .filter(a => new Date(a.date) > new Date() && a.status === 'PROGRAMME')
-    .slice(0, 5);
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-6">

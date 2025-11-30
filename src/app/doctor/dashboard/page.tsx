@@ -9,8 +9,9 @@ import { CardStats } from "@/components/doctor/CardStats";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
 
-// URL de ton backend Django (à mettre dans .env.local)
-const API_BASE = `${process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "")}/api/appointments`;
+// URL de ton backend Django (fallback local si variable manquante)
+const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000";
+const API_BASE = `${backendBase}/api/appointments`;
 
 const fetcher = (url: string, token?: string) =>
   fetch(url, {
@@ -66,7 +67,7 @@ export default function DoctorDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <CardStats
           title="Consultations aujourdhui"
           value={isLoading ? "..." : summary?.today_consultations ?? 0}
@@ -78,18 +79,6 @@ export default function DoctorDashboard() {
           value={isLoading ? "..." : summary?.total_patients ?? "N/A"}
           icon={Users}
           color="purple"
-        />
-        <CardStats
-          title="Ordonnances en attente"
-          value={isLoading ? "..." : summary?.pending_prescriptions ?? 0}
-          icon={FileText}
-          color="orange"
-        />
-        <CardStats
-          title="Traitements actifs"
-          value={isLoading ? "..." : summary?.active_treatments ?? 0}
-          icon={Activity}
-          color="green"
         />
       </div>
 
