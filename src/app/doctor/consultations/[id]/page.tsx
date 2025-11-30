@@ -15,6 +15,7 @@ interface ConsultationData {
     status: string;
   };
   patient: {
+    id: number;
     firstname: string;
     lastname: string;
   };
@@ -22,7 +23,18 @@ interface ConsultationData {
     allergies?: string;
     chronic_conditions?: string;
     medications?: string;
+    blood_type?: string;
+    emergency_contact?: string;
+    insurance_provider?: string;
+    insurance_number?: string;
   };
+  medical_file?: {
+    allergies?: string;
+    antecedents_familiaux?: string;
+    antecedents_personnels?: string;
+    traitements_en_cours?: string;
+    notes_importantes?: string;
+  } | null;
   medical_record?: {
     diagnostic?: string;
     traitement?: string;
@@ -32,6 +44,9 @@ interface ConsultationData {
     taille?: string;
     tension?: string;
     temperature?: string;
+    heart_rate?: string;
+    spo2?: string;
+    glycemia?: string;
   };
 }
 
@@ -52,7 +67,15 @@ export default function ConsultationPage() {
     poids: '',
     taille: '',
     tension: '',
-    temperature: ''
+    temperature: '',
+    heart_rate: '',
+    spo2: '',
+    glycemia: '',
+    allergies: '',
+    antecedents_familiaux: '',
+    antecedents_personnels: '',
+    traitements_en_cours: '',
+    notes_importantes: ''
   });
 
   const [timeLeft, setTimeLeft] = useState(30 * 60);
@@ -90,7 +113,7 @@ export default function ConsultationPage() {
     const fetchConsultation = async () => {
       try {
         setLoading(true);
-        const res = await fetch(
+          const res = await fetch(
           `${BACKEND_URL}/api/appointments/consultation/${id}/`,
           {
             method: 'GET',
@@ -101,7 +124,7 @@ export default function ConsultationPage() {
           }
         );
 
-        if (!res.ok) {
+          if (!res.ok) {
           if (res.status === 401) {
             toast.error('Session expirée');
             router.push('/login');
@@ -116,18 +139,26 @@ export default function ConsultationPage() {
         const result: ConsultationData = await res.json();
         setData(result);
 
-        if (result.medical_record) {
-          setForm({
-            diagnostic: result.medical_record.diagnostic || '',
-            traitement: result.medical_record.traitement || '',
-            ordonnance: result.medical_record.ordonnance || '',
-            notes: result.medical_record.notes || '',
-            poids: result.medical_record.poids || '',
-            taille: result.medical_record.taille || '',
-            tension: result.medical_record.tension || '',
-            temperature: result.medical_record.temperature || '',
-          });
-        }
+        const medicalRecord = result.medical_record || {};
+        const medicalFile = result.medical_file || {};
+        setForm({
+          diagnostic: medicalRecord.diagnostic || '',
+          traitement: medicalRecord.traitement || '',
+          ordonnance: medicalRecord.ordonnance || '',
+          notes: medicalRecord.notes || '',
+          poids: medicalRecord.poids || '',
+          taille: medicalRecord.taille || '',
+          tension: medicalRecord.tension || '',
+          temperature: medicalRecord.temperature || '',
+          heart_rate: medicalRecord.heart_rate || '',
+          spo2: medicalRecord.spo2 || '',
+          glycemia: medicalRecord.glycemia || '',
+          allergies: medicalFile.allergies || '',
+          antecedents_familiaux: medicalFile.antecedents_familiaux || '',
+          antecedents_personnels: medicalFile.antecedents_personnels || '',
+          traitements_en_cours: medicalFile.traitements_en_cours || '',
+          notes_importantes: medicalFile.notes_importantes || '',
+        });
       } catch (err) {
         console.error(err);
         toast.error('Erreur réseau');
@@ -139,11 +170,30 @@ export default function ConsultationPage() {
     fetchConsultation();
   }, [id, session?.accessToken, status, router]);
 
- const save = async () => {
-  if (!session?.accessToken || !id) return;
+  const save = async () => {
+    if (!session?.accessToken || !id) return;
 
-  try {
-    // 1. Sauvegarde du dossier médical (comme avant)
+    try {
+      const payload = {
+      appointment: Number(id),
+      diagnostic: form.diagnostic,
+      traitement: form.traitement,
+      ordonnance: form.ordonnance,
+      notes: form.notes,
+      poids: form.poids,
+      taille: form.taille,
+      tension: form.tension,
+      temperature: form.temperature,
+      heart_rate: form.heart_rate,
+      spo2: form.spo2,
+      glycemia: form.glycemia,
+      allergies: form.allergies,
+      antecedents_familiaux: form.antecedents_familiaux,
+      antecedents_personnels: form.antecedents_personnels,
+      traitements_en_cours: form.traitements_en_cours,
+      notes_importantes: form.notes_importantes,
+    };
+
     const res = await fetch(
       `${BACKEND_URL}/api/appointments/save-medical-record/`,
       {
@@ -152,10 +202,7 @@ export default function ConsultationPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.accessToken}`,
         },
-        body: JSON.stringify({
-          appointment: Number(id),
-          ...form,
-        }),
+        body: JSON.stringify(payload),
       }
     );
 
@@ -164,9 +211,9 @@ export default function ConsultationPage() {
       return;
     }
 
-    // 2. Si ordonnance remplie → on la crée automatiquement
-    if (form.ordonnance.trim()) {
-      const ordonnanceRes = await fetch(
+      // 2. Si ordonnance remplie → on la crée automatiquement
+      if (form.ordonnance.trim()) {
+        const ordonnanceRes = await fetch(
         `${BACKEND_URL}/api/ordonnances/create-from-consultation/`,
         {
           method: 'POST',
@@ -181,17 +228,17 @@ export default function ConsultationPage() {
         }
       );
 
-      if (!ordonnanceRes.ok) {
-        toast.error('Ordonnance non créée (mais dossier sauvegardé)');
+        if (!ordonnanceRes.ok) {
+          toast.error('Ordonnance non créée (mais dossier sauvegardé)');
+        }
       }
-    }
 
-    toast.success('Consultation terminée ! Ordonnance générée');
-    router.push('/doctor/ordonnances');
-  } catch (err) {
-    toast.error('Erreur réseau');
-  }
-};
+      toast.success('Consultation terminée ! Ordonnance générée');
+      router.push('/doctor/ordonnances');
+    } catch (err) {
+      toast.error('Erreur réseau');
+    }
+  };
 
   if (!session || !data) {
     return (
@@ -274,83 +321,63 @@ export default function ConsultationPage() {
                 </h2>
               </div>
 
-              <div className="p-4 space-y-3">
-                {data.patient_profile ? (
-                  <>
-                    <div className="bg-red-50 border-l-4 border-red-400 rounded-r-lg p-3">
-                      <div className="flex items-start gap-2">
-                        <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-red-800 text-xs mb-0.5">Allergies</p>
-                          <p className="text-red-700 text-sm">{data.patient_profile.allergies || 'Aucune'}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r-lg p-3">
-                      <div className="flex items-start gap-2">
-                        <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                          <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
-                        </svg>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-amber-800 text-xs mb-0.5">Antécédents</p>
-                          <p className="text-amber-700 text-sm">{data.patient_profile.chronic_conditions || 'Aucun'}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-blue-50 border-l-4 border-blue-400 rounded-r-lg p-3">
-                      <div className="flex items-start gap-2">
-                        <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                        </svg>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-blue-800 text-xs mb-0.5">Traitement</p>
-                          <p className="text-blue-700 text-sm">{data.patient_profile.medications || 'Aucun'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-6">
-                    <svg className="w-12 h-12 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p className="text-sm text-slate-500">Aucun antécédent</p>
+              <div className="p-4 space-y-4">
+                {data.patient_profile && (
+                  <div className="flex flex-col gap-2 text-sm text-slate-600">
+                    <p><strong>Groupe sanguin :</strong> {data.patient_profile.blood_type || '—'}</p>
+                    <p><strong>Contact urgence :</strong> {data.patient_profile.emergency_contact || '—'}</p>
+                    <p><strong>Assurance :</strong> {data.patient_profile.insurance_provider || '—'} {data.patient_profile.insurance_number && `(${data.patient_profile.insurance_number})`}</p>
                   </div>
                 )}
+
+                {[
+                  { label: 'Allergies', key: 'allergies', placeholder: 'Lister les allergies connues...' },
+                  { label: 'Antécédents familiaux', key: 'antecedents_familiaux', placeholder: 'Antécédents médicaux familiaux...' },
+                  { label: 'Antécédents personnels', key: 'antecedents_personnels', placeholder: 'Antécédents médicaux personnels...' },
+                  { label: 'Traitements en cours', key: 'traitements_en_cours', placeholder: 'Traitements actuels...' },
+                  { label: 'Notes importantes', key: 'notes_importantes', placeholder: 'Informations critiques à retenir...' },
+                ].map(({ label, key, placeholder }) => (
+                  <div key={key}>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">{label}</label>
+                    <textarea
+                      rows={key === 'notes_importantes' ? 4 : 3}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                      placeholder={placeholder}
+                      value={form[key as keyof typeof form] as string}
+                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            
-            {/* Signes Vitaux */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
               <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-4 flex items-center">
-                <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                <svg className="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-                Signes Vitaux
+                Signes vitaux
               </h3>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {[
-                  { label: 'Poids', placeholder: 'kg', color: 'blue', key: 'poids' },
-                  { label: 'Taille', placeholder: 'cm', color: 'green', key: 'taille' },
-                  { label: 'Tension', placeholder: 'mmHg', color: 'purple', key: 'tension' },
-                  { label: 'Temp.', placeholder: '°C', color: 'orange', key: 'temperature' }
-                ].map(({ label, placeholder, color, key }) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {( [
+                  { label: 'Poids (kg)', key: 'poids', placeholder: '70' },
+                  { label: 'Taille (cm)', key: 'taille', placeholder: '170' },
+                  { label: 'Tension', key: 'tension', placeholder: '120/80' },
+                  { label: 'Température (°C)', key: 'temperature', placeholder: '37.0' },
+                  { label: 'Fréquence cardiaque (bpm)', key: 'heart_rate', placeholder: '72' },
+                  { label: 'SpO₂ (%)', key: 'spo2', placeholder: '98' },
+                  { label: 'Glycémie (g/L)', key: 'glycemia', placeholder: '1.0' },
+                ] as const).map(({ label, key, placeholder }) => (
                   <div key={key}>
-                    <label className="block text-xs font-medium text-slate-600 mb-1.5">{label}</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">{label}</label>
                     <input
                       type="text"
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
                       placeholder={placeholder}
-                      className={`w-full border-2 border-slate-200 rounded-lg px-3 py-2.5 text-center font-semibold text-slate-700 focus:border-${color}-500 focus:ring-2 focus:ring-${color}-100 outline-none transition text-sm`}
-                      value={form[key as keyof typeof form]}
+                      value={form[key]}
                       onChange={(e) => setForm({ ...form, [key]: e.target.value })}
                     />
                   </div>
@@ -391,7 +418,6 @@ export default function ConsultationPage() {
                 onChange={(e) => setForm({ ...form, ordonnance: e.target.value })}
               />
             </div>
-
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button

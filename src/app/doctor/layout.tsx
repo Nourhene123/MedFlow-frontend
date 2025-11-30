@@ -23,9 +23,7 @@ const menuItems = [
   { href: '/doctor/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
   { href: '/doctor/agenda', label: 'agenda', icon: Calendar },
    { href: '/doctor/consultations', label: 'consultations', icon: Calendar },
-  { href: '/doctor/ordonnances', label: 'Ordonnances', icon: FileText },
   { href: '/doctor/patients',    label: 'Mes Patients',    icon: Users },
-  { href: '/doctor/traitements', label: 'Traitements', icon: Activity },
 ];
 
 export default function DoctorLayout({ children }: { children: React.ReactNode }) {
