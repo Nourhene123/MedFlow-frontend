@@ -16,6 +16,7 @@ const menuItems = [
   { href: '/receptionist/patients', label: 'Patients', icon: Users },
   { href: '/receptionist/medical', label: 'Dossiers médicaux', icon: FileText },
   { href: '/receptionist/billing', label: 'Facturation', icon: DollarSign },
+  
 ];
 
 export default function ReceptionistLayout({ children }: { children: React.ReactNode }) {
