@@ -224,10 +224,10 @@ export default function InvoiceDetailPage() {
 
   const formatMontant = (montant: number): string => {
     try {
-      if (isNaN(montant)) return '0.00 €';
-      return montant.toFixed(2) + ' €';
+      if (isNaN(montant)) return '0.00 DT';
+      return montant.toFixed(2) + ' DT';
     } catch {
-      return '0.00 €';
+      return '0.00 DT';
     }
   };
 
@@ -456,7 +456,6 @@ export default function InvoiceDetailPage() {
                 <thead>
                   <tr className="bg-blue-600 text-white">
                     <th className="text-left p-3 font-semibold">Description</th>
-                    <th className="text-center p-3 font-semibold">Quantité</th>
                     <th className="text-right p-3 font-semibold">Prix Unitaire HT</th>
                     <th className="text-right p-3 font-semibold">Montant HT</th>
                   </tr>
