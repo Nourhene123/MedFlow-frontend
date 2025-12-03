@@ -73,12 +73,11 @@ export default function PatientsPage() {
             {cliniqueName} • <span className="font-medium">{patients.length} patients</span>
           </p>
         </div>
-        <Link href="/receptionist/appointments/new">
-          <button className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5">
-            <Plus className="w-5 h-5" />
-            Nouveau RDV
-          </button>
-        </Link>
+        <Link href={`/receptionist/patients/${patients.id}/rendez-vous`}>
+      <button className="p-2 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors">
+        RDV
+      </button>
+    </Link>
       </div>
 
       {/* === RECHERCHE === */}
@@ -187,12 +186,12 @@ export default function PatientsPage() {
                               Dossier
                             </button>
                           </Link>
-                          <Link href={`/receptionist/patients/${p.id}/factures`}>
-                            <button className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors">
-                              Factures
-                            </button>
-                          </Link>
-                          <Link href={`/receptionist/appointments/new?patient=${p.id}`}>
+                           <Link href={`/receptionist/patients/${p.id}/factures`}>
+  <button className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors">
+    Factures
+  </button>
+</Link>
+                          <Link href={`/receptionist/patients/${p.id}/rendez-vous`}>
                             <button className="p-2 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors">
                               RDV
                             </button>

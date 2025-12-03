@@ -48,10 +48,10 @@ export default function OverdueInvoicesPage() {
   const formatMontant = (montant: number | string): string => {
     try {
       const montantNumber = typeof montant === 'string' ? parseFloat(montant) : montant;
-      if (isNaN(montantNumber)) return '0.00 €';
-      return montantNumber.toFixed(2) + ' €';
+      if (isNaN(montantNumber)) return '0.00 DT';
+      return montantNumber.toFixed(2) + ' DT';
     } catch {
-      return '0.00 €';
+      return '0.00 DT';
     }
   };
 

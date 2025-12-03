@@ -14,10 +14,10 @@ interface InvoiceCardProps {
 export function InvoiceCard({ invoice, onView, onEdit, onDelete }: InvoiceCardProps) {
   const formatMontant = (montant: number): string => {
     try {
-      if (isNaN(montant)) return '0.00 €';
-      return montant.toFixed(2) + ' €';
+      if (isNaN(montant)) return '0.00 DT';
+      return montant.toFixed(2) + ' DT';
     } catch {
-      return '0.00 €';
+      return '0.00 DT';
     }
   };
 

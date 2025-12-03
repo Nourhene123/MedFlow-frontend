@@ -6,16 +6,15 @@ import { useRouter } from 'next/navigation';
 import { InvoiceCard } from '@/components/receptionist/InvoiceCard';
 import { FinancialDashboard } from '@/components/receptionist/FinancialDashboard';
 import { InvoiceFilters } from '@/components/receptionist/InvoiceFilters';
-import { Plus, FileText, Filter, Download, RefreshCw, AlertTriangle, Clock, Send, CheckCircle } from 'lucide-react';
+import { Plus, FileText, Filter, Download, RefreshCw, AlertTriangle, Clock, Send, CheckCircle, User, X } from 'lucide-react';
 import Link from 'next/link';
 import { Invoice, FinancialStats, InvoiceForCard } from '@/types/invoice';
+import { useSearchParams } from 'next/navigation';
 
 // Fonction de normalisation des montants
-// Dans app/receptionist/billing/page.tsx - CORRECTION DE LA NORMALISATION
 const normalizeInvoice = (invoiceData: any): Invoice => {
   return {
     ...invoiceData,
-    // Les champs sont déjà des numbers grâce aux sérialiseurs corrigés
     montant_ht: typeof invoiceData.montant_ht === 'string' ? parseFloat(invoiceData.montant_ht) : invoiceData.montant_ht,
     montant_ttc: typeof invoiceData.montant_ttc === 'string' ? parseFloat(invoiceData.montant_ttc) : invoiceData.montant_ttc,
     tva: typeof invoiceData.tva === 'string' ? parseFloat(invoiceData.tva) : invoiceData.tva,
@@ -30,6 +29,7 @@ const normalizeInvoice = (invoiceData: any): Invoice => {
 export default function BillingPage() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [stats, setStats] = useState<FinancialStats | null>(null);
@@ -45,8 +45,22 @@ export default function BillingPage() {
     date_to: '',
     ordering: '-date_emission'
   });
+  
+  // État pour gérer le patient depuis l'URL
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+
+  // Effet pour lire le paramètre patient depuis l'URL
+  useEffect(() => {
+    const patientParam = searchParams?.get('patient');
+    if (patientParam) {
+      setSelectedPatientId(patientParam);
+      console.log('Patient ID from URL:', patientParam);
+    } else {
+      setSelectedPatientId(null);
+    }
+  }, [searchParams]);
 
   // Fonction pour émettre une facture
   const handleIssueInvoice = async (invoiceId: number) => {
@@ -124,35 +138,50 @@ export default function BillingPage() {
   };
 
   const fetchInvoices = async () => {
-    if (!session?.accessToken) return;
+  if (!session?.accessToken) return;
 
-    try {
-      setIsLoading(true);
+  try {
+    setIsLoading(true);
+    
+    // ✅ UTILISEZ LA VUE DÉDIÉE POUR LES FACTURES PAR PATIENT
+    let url = `${API_BASE}/api/invoices/`;
+    
+    if (selectedPatientId) {
+      // Utilisez l'endpoint dédié aux factures par patient
+      url = `${API_BASE}/api/invoices/patient/${selectedPatientId}/invoices/simple/`;
+    } else {
+      // Utilisez l'endpoint normal avec filtres
       const params = new URLSearchParams();
-      
       Object.entries(filters).forEach(([key, value]) => {
-        if (value && value !== '') {
-          params.append(key, value);
-        }
+        if (value && value !== '') params.append(key, value);
       });
-
-      const response = await fetch(`${API_BASE}/api/invoices/?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${session.accessToken}`,
-        },
-      });
-
-      if (!response.ok) throw new Error('Erreur lors du chargement des factures');
-      const data = await response.json();
-      
-      const normalizedInvoices = data.map((invoice: any) => normalizeInvoice(invoice));
-      setInvoices(normalizedInvoices);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
+      url = `${API_BASE}/api/invoices/?${params}`;
     }
-  };
+
+    console.log('📡 Fetch URL:', url);
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${session.accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status} lors du chargement des factures`);
+    }
+    
+    const data = await response.json();
+    console.log(`✅ ${data.length} factures chargées`);
+    
+    const normalizedInvoices = data.map((invoice: any) => normalizeInvoice(invoice));
+    setInvoices(normalizedInvoices);
+  } catch (err: any) {
+    setError(err.message);
+    console.error('Erreur:', err);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const fetchDashboard = async () => {
     if (!session?.accessToken) return;
@@ -197,9 +226,20 @@ export default function BillingPage() {
       fetchDashboard();
       fetchOverdueInvoices();
     }
-  }, [sessionStatus, filters]);
+  }, [sessionStatus, filters, selectedPatientId]); // Ajout de selectedPatientId dans les dépendances
 
-  // ✅ FONCTION MANQUANTE AJOUTÉE
+  // Fonction pour effacer le filtre patient
+  const clearPatientFilter = () => {
+    setSelectedPatientId(null);
+    // Retirer le paramètre de l'URL
+    router.push('/receptionist/billing');
+  };
+
+  // Trouver le patient actuel (pour affichage)
+  const currentPatient = selectedPatientId && invoices.length > 0 
+    ? invoices.find(inv => inv.patient?.id?.toString() === selectedPatientId)?.patient
+    : null;
+
   const convertToInvoiceForCard = (invoice: Invoice): InvoiceForCard => {
     return {
       id: invoice.id,
@@ -252,7 +292,6 @@ export default function BillingPage() {
     }
   };
 
-  // ✅ FONCTION MANQUANTE AJOUTÉE - Export CSV
   const handleExport = async () => {
     if (!session?.accessToken) return;
 
@@ -291,7 +330,6 @@ export default function BillingPage() {
     }
   };
 
-  // ✅ FONCTION MANQUANTE AJOUTÉE - Génération CSV
   const generateCSV = (invoices: Invoice[]): string => {
     const headers = ['Numéro', 'Patient', 'Date Émission', 'Montant HT', 'TVA', 'Montant TTC', 'Statut', 'Description'];
     const rows = invoices.map(invoice => [
@@ -366,20 +404,54 @@ export default function BillingPage() {
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Gérez les factures, les paiements et suivez votre activité financière
           </p>
+          
+          {/* Afficher le patient filtré */}
+          {selectedPatientId && currentPatient && (
+            <div className="mt-3 flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2 inline-flex">
+              <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-blue-700 dark:text-blue-300 text-sm">
+                Patient: <strong>{currentPatient.firstname} {currentPatient.lastname}</strong>
+              </span>
+              <button
+                onClick={clearPatientFilter}
+                className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                title="Afficher toutes les factures"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+          
+          {/* Message si aucun patient trouvé mais ID présent */}
+          {selectedPatientId && invoices.length === 0 && !isLoading && (
+            <div className="mt-3 flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 inline-flex">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span className="text-amber-700 dark:text-amber-300 text-sm">
+                Aucune facture trouvée pour ce patient (ID: {selectedPatientId})
+              </span>
+              <button
+                onClick={clearPatientFilter}
+                className="ml-2 text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300"
+                title="Afficher toutes les factures"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
         </div>
+        
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
               fetchInvoices();
               fetchDashboard();
+              fetchOverdueInvoices();
             }}
             className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Actualiser
           </button>
-          
-         
           
           <button
             onClick={handleExport}
@@ -416,6 +488,11 @@ export default function BillingPage() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Factures ({invoices.length})
+            {selectedPatientId && currentPatient && (
+              <span className="ml-2 text-sm font-normal text-blue-600 dark:text-blue-400">
+                • Patient: {currentPatient.firstname} {currentPatient.lastname}
+              </span>
+            )}
           </h2>
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <Filter className="w-4 h-4" />
@@ -453,16 +530,32 @@ export default function BillingPage() {
               Aucune facture trouvée
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Aucune facture ne correspond à vos critères de recherche.
+              {selectedPatientId 
+                ? `Aucune facture ne correspond au patient sélectionné.`
+                : `Aucune facture ne correspond à vos critères de recherche.`
+              }
             </p>
-            <Link href="/receptionist/billing/create">
-              <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                Créer votre première facture
-              </button>
-            </Link>
+            <div className="flex gap-3 justify-center">
+              {selectedPatientId && (
+                <button
+                  onClick={clearPatientFilter}
+                  className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Voir toutes les factures
+                </button>
+              )}
+              <Link href="/receptionist/billing/create">
+                <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                  Créer une nouvelle facture
+                </button>
+              </Link>
+            </div>
           </div>
         )}
       </div>
     </div>
   );
 }
+
+
+

@@ -47,7 +47,7 @@ export function FinancialDashboard({ stats }: FinancialDashboardProps) {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Revenu Total</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                {stats.total_revenu?.toFixed(2) || '0.00'} €
+                {stats.total_revenu?.toFixed(2) || '0.00'} DT
               </p>
             </div>
             <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white">
@@ -61,7 +61,7 @@ export function FinancialDashboard({ stats }: FinancialDashboardProps) {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Revenu Payé</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                {stats.total_paye?.toFixed(2) || '0.00'} €
+                {stats.total_paye?.toFixed(2) || '0.00'} DT
               </p>
             </div>
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white">
@@ -137,7 +137,7 @@ export function FinancialDashboard({ stats }: FinancialDashboardProps) {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Impayé</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {stats.impaye?.toFixed(2) || '0.00'} €
+                {stats.impaye?.toFixed(2) || '0.00'} DT
               </p>
             </div>
           </div>

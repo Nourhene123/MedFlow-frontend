@@ -1,7 +1,8 @@
 // src/components/receptionist/InvoiceFilters.tsx
 'use client';
+import { useState, useEffect } from 'react'; // AJOUT: Import useEffect
+import { useSearchParams } from 'next/navigation'; // AJOUT: Import useSearchParams
 
-import { useState } from 'react';
 import { Search, Filter, X } from 'lucide-react';
 
 interface InvoiceFiltersProps {
@@ -11,6 +12,19 @@ interface InvoiceFiltersProps {
 
 export function InvoiceFilters({ filters, onFiltersChange }: InvoiceFiltersProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const searchParams = useSearchParams(); // AJOUT: Récupérer les paramètres d'URL
+
+  // AJOUT: Effet pour lire le paramètre patient depuis l'URL
+  useEffect(() => {
+    const patientId = searchParams?.get('patient');
+    if (patientId) {
+      onFiltersChange({
+        ...filters,
+        patient: patientId // Ajoute le filtre patient
+      });
+    }
+  }, [searchParams]); // Se déclenche quand les paramètres changent
+
 
   const updateFilter = (key: string, value: string) => {
     onFiltersChange({
