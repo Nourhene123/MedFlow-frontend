@@ -172,28 +172,120 @@ function AppointmentModal({ appointment, onClose, mutate, onCreateSuccess }: App
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
+  // === VÉRIFICATION DISPONIBILITÉ ===
+const checkAvailability = async (doctorId: string, dateTime: string, duration: number = 30): Promise<boolean> => {
+  try {
+    const response = await fetch(
+      `${API_BASE}appointments/check-availability/?doctor_id=${doctorId}&date_time=${dateTime}&duration=${duration}`,
+      {
+        headers: { 
+          'Authorization': `Bearer ${session?.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+      }
+    );
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = typeof errorData === 'object' && errorData !== null && 'error' in errorData
+        ? String(errorData.error)
+        : 'Erreur lors de la vérification de disponibilité';
+      throw new Error(errorMessage);
+    }
+    
+    const data = await response.json();
+    return Boolean(data.available);
+  } catch (error) {
+    console.error('Erreur vérification disponibilité:', error);
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Erreur inconnue lors de la vérification de disponibilité';
+    toast.error(errorMessage);
+    return false;
+  }
+};
+
   // === VALIDATION ===
-  const validate = () => {
+  const validate = async () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.patient_id) newErrors.patient_id = 'Patient requis';
-    if (!formData.medecin_id) newErrors.medecin_id = 'Médecin requis';
-    if (!formData.date) newErrors.date = 'Date et heure requises';
-    else if (selectedDoctor && selectedDate) {
+    let isValid = true;
+
+    // Validation des champs obligatoires
+    if (!formData.patient_id) {
+      newErrors.patient_id = 'Patient requis';
+      isValid = false;
+    }
+    if (!formData.medecin_id) {
+      newErrors.medecin_id = 'Médecin requis';
+      isValid = false;
+    }
+    if (!formData.date) {
+      newErrors.date = 'Date et heure requises';
+      isValid = false;
+    } else if (selectedDoctor && selectedDate) {
       const timeOnly = formData.date.split('T')[1];
       const dateOnly = formData.date.split('T')[0];
       if (!availableSlots.some(s => s.time.includes(dateOnly) && s.time.includes(timeOnly))) {
         newErrors.date = 'Créneau non disponible';
+        isValid = false;
+      } else {
+        // Vérification de la disponibilité en temps réel
+        try {
+          const isAvailable = await checkAvailability(selectedDoctor, formData.date);
+          if (!isAvailable) {
+            newErrors.date = 'Ce créneau vient d\'être réservé';
+            isValid = false;
+            // Recharger les créneaux disponibles
+            const res = await fetch(
+              `${API_BASE}appointments/available-slots/?medecin=${selectedDoctor}&date=${selectedDate}`,
+              { headers: { Authorization: `Bearer ${session?.accessToken}` } }
+            );
+            const data = await res.json();
+            setAvailableSlots(data.slots || []);
+          }
+        } catch (error) {
+          console.error('Erreur lors de la vérification de disponibilité:', error);
+          newErrors.date = 'Erreur de vérification';
+          isValid = false;
+        }
       }
     }
-    if (!formData.motif) newErrors.motif = 'Motif requis';
+    if (!formData.motif) {
+      newErrors.motif = 'Motif requis';
+      isValid = false;
+    }
+    
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return isValid;
   };
 
   // === SOUMISSION ===
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    
+    // Vérifier la disponibilité avant la soumission
+    if (!(await validate())) return;
+    
+    // Vérification finale de disponibilité
+    if (formData.medecin_id && formData.date) {
+      const isAvailable = await checkAvailability(formData.medecin_id, formData.date);
+      if (!isAvailable) {
+        setErrors(prev => ({
+          ...prev,
+          date: 'Ce créneau vient d\'être réservé. Veuillez choisir un autre horaire.'
+        }));
+        // Recharger les créneaux disponibles
+        if (selectedDoctor && selectedDate) {
+          const res = await fetch(
+            `${API_BASE}appointments/available-slots/?medecin=${selectedDoctor}&date=${selectedDate}`,
+            { headers: { Authorization: `Bearer ${session?.accessToken}` } }
+          );
+          const data = await res.json();
+          setAvailableSlots(data.slots || []);
+        }
+        return;
+      }
+    }
 
     setIsSubmitting(true);
     try {

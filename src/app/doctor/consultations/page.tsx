@@ -45,30 +45,27 @@ export default function AgendaPage() {
       headers: { Authorization: `Bearer ${session?.accessToken}` },
     }).then(r => r.json());
 
-  const { data: agenda } = useSWR(`${API_BASE}doctor/agenda/`, fetcher);
+  const { data: agenda = [] } = useSWR(`${API_BASE}doctor/agenda/`, fetcher);
 
   useEffect(() => {
-    if (!agenda) return;
-
-    const mappedEvents: Event[] = agenda.map((rdv: any) => ({
-      id: rdv.id.toString(),
-      title: rdv.patient_name,
-      start: rdv.date,
-      end: new Date(new Date(rdv.date).getTime() + rdv.duration_minutes * 60000).toISOString(),
-      backgroundColor: getStatusColor(rdv.status),
-      borderColor: getStatusColor(rdv.status),
-      extendedProps: {
-        patient_name: rdv.patient_name,
-        status: rdv.status,
-        room_number: rdv.room_number,
-        patient_id: rdv.patient.id,
-      },
-    }));
-
-    setEvents(mappedEvents);
+    if (agenda) {
+      const mappedEvents: Event[] = agenda.map((rdv: any) => ({
+        id: rdv.id.toString(),
+        title: rdv.patient_name,
+        start: rdv.date,
+        end: new Date(new Date(rdv.date).getTime() + rdv.duration_minutes * 60000).toISOString(),
+        backgroundColor: getStatusColor(rdv.status),
+        borderColor: getStatusColor(rdv.status),
+        extendedProps: {
+          patient_name: rdv.patient_name,
+          status: rdv.status,
+          room_number: rdv.room_number,
+          patient_id: rdv.patient.id,
+        },
+      }));
+      setEvents(mappedEvents);
+    }
   }, [agenda]);
-
-  const agendaList = agenda ?? [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -161,7 +158,7 @@ export default function AgendaPage() {
               <div>
                 <p className="text-blue-100">Consultations aujourd&apos;hui</p>
                 <p className="text-3xl font-bold mt-1">
-                  {agendaList.filter((r: any) => new Date(r.date).toDateString() === new Date().toDateString()).length}
+                  {agenda.filter((r: any) => new Date(r.date).toDateString() === new Date().toDateString()).length}
                 </p>
               </div>
               <Clock className="w-10 h-10 text-blue-200" />
@@ -173,7 +170,7 @@ export default function AgendaPage() {
               <div>
                 <p className="text-purple-100">En cours</p>
                 <p className="text-3xl font-bold mt-1">
-                  {agendaList.filter((r: any) => r.status === 'IN_PROGRESS').length}
+                  {agenda.filter((r: any) => r.status === 'IN_PROGRESS').length}
                 </p>
               </div>
               <Activity className="w-10 h-10 text-purple-200" />
@@ -185,7 +182,7 @@ export default function AgendaPage() {
               <div>
                 <p className="text-green-100">Terminées</p>
                 <p className="text-3xl font-bold mt-1">
-                  {agendaList.filter((r: any) => r.status === 'COMPLETED').length}
+                  {agenda.filter((r: any) => r.status === 'COMPLETED').length}
                 </p>
               </div>
               <CheckCircle className="w-10 h-10 text-green-200" />
