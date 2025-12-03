@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
+
 import { useSession } from "next-auth/react";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import useSWR, { mutate } from 'swr';
+import useSWR from 'swr';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -43,14 +43,17 @@ interface Clinic {
   id: number;
   name: string;
   tenant_id: string;
-  admins: User[];
+  address: string;
+  phone: string;
+  admins?: User[] | null;
+  [key: string]: any;
 }
 
 const API_BASE = process.env.BACKEND_URL || 'http://localhost:8000/api/';
 const ACCOUNTS_API = `${API_BASE}accounts/`;
 const CLINIQUE_API = `${API_BASE}clinique/`;
 
-const fetcher = (url: string, token: any) =>
+const fetcher = (url: string, token: string) =>
   fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -61,40 +64,59 @@ const fetcher = (url: string, token: any) =>
     return res.json();
   });
 
-
 export default function ManagersPage() {
   const [search, setSearch] = useState('');
-  const [showForm, setShowForm] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedManager, setSelectedManager] = useState<User | null>(null);
   const [selectedClinics, setSelectedClinics] = useState<number[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
-  const { data: session } = useSession();
-  const accessToken = session?.accessToken;
 
-  // Data fetching
-  const {
-    data: managers = [],
-    isLoading: loadingManagers,
-  } = useSWR<User[]>(
-    accessToken ? [`${ACCOUNTS_API}users/by-type/MANAGER`, accessToken] : null,
-    ([url, token]) => fetcher(url, token)
+  const { data: session } = useSession();
+  const accessToken = session?.accessToken as string | undefined;
+
+  // Clés SWR stabilisées → plus de boucle infinie !
+  const managersKey = useMemo(
+    () => (accessToken ? [`${ACCOUNTS_API}users/by-type/MANAGER`, accessToken] : null),
+    [accessToken]
   );
 
-const { data: clinics = [] } = useSWR<Clinic[]>(
-  accessToken ? [`${CLINIQUE_API}list/`, accessToken] : null,
-  ([url, token]) => fetcher(url, token)
-);
-  // Pre-populate selectedClinics
+  const clinicsKey = useMemo(
+    () => (accessToken ? [`${CLINIQUE_API}list/`, accessToken] : null),
+    [accessToken]
+  );
+
+  const { data: managers = [], mutate: mutateManagers, isLoading: isLoadingManagers } = useSWR<User[]>(
+    managersKey, 
+    ([url, token]: [string, string]) => fetcher(url, token)
+  );
+
+  const { data: clinics = [], mutate: mutateClinics, isLoading: isLoadingClinics } = useSWR<Clinic[]>(
+    clinicsKey, 
+    ([url, token]: [string, string]) => fetcher(url, token)
+  );
+
+  const loadingManagers = isLoadingManagers || isLoadingClinics;
+
+  // Synchronisation des cliniques assignées
   useEffect(() => {
-    if (selectedManager && clinics.length > 0) {
-      const assignedIds = clinics
-        .filter((c) => c.admins?.some((a) => a.id === selectedManager.id))
-        .map((c) => c.id);
-      setSelectedClinics(assignedIds);
+    if (!selectedManager || !clinics.length) {
+      setSelectedClinics([]);
+      return;
     }
+
+    const assigned = clinics
+      .filter((c) => {
+        const admins = c.admins || [];
+        return admins.some(
+          (a: any) => Number(a.id || a.userId || a.user?.id) === selectedManager.id
+        );
+      })
+      .map((c) => c.id);
+
+    setSelectedClinics(assigned);
   }, [selectedManager, clinics]);
 
-  // Form
+  // Formulaire création
   const {
     register,
     handleSubmit,
@@ -102,14 +124,6 @@ const { data: clinics = [] } = useSWR<Clinic[]>(
     formState: { errors, isSubmitting },
   } = useForm<ManagerForm>({ resolver: zodResolver(managerSchema) });
 
-  // Filtering
-  const filteredManagers = managers.filter(
-    (m) =>
-      `${m.firstname} ${m.lastname}`.toLowerCase().includes(search.toLowerCase()) ||
-      m.email.toLowerCase().includes(search.toLowerCase())
-  );
-
-  // ─── Handlers ───────────────────────────────────────────────
   const createManager = async (data: ManagerForm) => {
     try {
       const res = await fetch(`${ACCOUNTS_API}create-manager/`, {
@@ -127,26 +141,23 @@ const { data: clinics = [] } = useSWR<Clinic[]>(
       }
 
       toast.success('Manager créé avec succès');
-      mutate(`${ACCOUNTS_API}users/?user_type=MANAGER`);
+      mutateManagers();
       reset();
-      setShowForm(false);
+      setShowCreateModal(false);
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message || 'Une erreur est survenue');
     }
   };
 
   const deleteManager = async (id: number) => {
     if (!confirm('Supprimer ce manager ?')) return;
-
     try {
-      const res = await fetch(`${ACCOUNTS_API}users/${id}/`, {
+      await fetch(`${ACCOUNTS_API}users/${id}/`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-
-      if (!res.ok) throw new Error('Échec suppression');
       toast.success('Manager supprimé');
-      mutate(`${ACCOUNTS_API}users/?user_type=MANAGER`);
+      mutateManagers();
     } catch {
       toast.error('Impossible de supprimer');
     }
@@ -168,129 +179,160 @@ const { data: clinics = [] } = useSWR<Clinic[]>(
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Échec assignation');
+        throw new Error(err.detail || err.error || 'Échec assignation');
       }
 
-      toast.success('Cliniques assignées');
+      toast.success('Cliniques assignées avec succès');
+      await Promise.all([mutateManagers(), mutateClinics()]);
       setSelectedManager(null);
       setSelectedClinics([]);
-      mutate(`${CLINIQUE_API}list/`);
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message || 'Erreur assignation');
     } finally {
       setIsAssigning(false);
     }
   };
 
-  // ─── UI ─────────────────────────────────────────────────────
+  const filteredManagers = managers.filter((m) =>
+    `${m.firstname} ${m.lastname}`.toLowerCase().includes(search.toLowerCase()) ||
+    m.email.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const openCreateModal = () => {
+    reset();
+    setShowCreateModal(true);
+  };
+
+  const closeCreateModal = () => setShowCreateModal(false);
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Gestion des Managers
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {managers.length} manager{managers.length > 1 ? 's' : ''}
-          </p>
+    <>
+      <div className="p-6 max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Gestion des Managers
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              {managers.length} manager{managers.length > 1 ? 's' : ''}
+            </p>
+          </div>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={openCreateModal}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-shadow"
+          >
+            <UserPlus className="w-5 h-5" />
+            Nouveau Manager
+          </motion.button>
         </div>
 
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowForm((v) => !v)}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-shadow"
-        >
-          <UserPlus className="w-5 h-5" />
-          {showForm ? 'Annuler' : 'Nouveau Manager'}
-        </motion.button>
+        {/* Recherche */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Rechercher un manager..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+          />
+        </div>
+
+        {/* Liste des managers */}
+        {loadingManagers ? (
+          <LoadingGrid />
+        ) : filteredManagers.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence>
+              {filteredManagers.map((manager) => (
+                <ManagerCard
+                  key={manager.id}
+                  manager={manager}
+                  onAssign={() => setSelectedManager(manager)}
+                  onDelete={() => deleteManager(manager.id)}
+                />
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        )}
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Rechercher un manager..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-        />
-      </div>
-
-      {/* Create Form */}
+      {/* MODALE CRÉATION */}
       <AnimatePresence>
-        {showForm && (
+        {showCreateModal && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-200 dark:border-gray-700"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={closeCreateModal}
           >
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Créer un Manager
-              </h2>
-              <button
-                onClick={() => setShowForm(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit(createManager)} className="space-y-5">
-              <div className="grid md:grid-cols-2 gap-5">
-                <InputField
-                  label="Prénom *"
-                  {...register('firstname')}
-                  error={errors.firstname?.message}
-                />
-                <InputField
-                  label="Nom *"
-                  {...register('lastname')}
-                  error={errors.lastname?.message}
-                />
-                <InputField
-                  label="Email *"
-                  type="email"
-                  {...register('email')}
-                  error={errors.email?.message}
-                  className="md:col-span-2"
-                />
-                <InputField label="Téléphone" {...register('phone')} />
-                <InputField
-                  label="Mot de passe *"
-                  type="password"
-                  {...register('password')}
-                  error={errors.password?.message}
-                />
-              </div>
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                >
-                  Annuler
-                </button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-2.5 rounded-lg font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                >
-                  {isSubmitting ? 'Création...' : 'Créer'}
-                </motion.button>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 w-full max-w-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-8">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Créer un Nouveau Manager
+                  </h2>
+                  <button
+                    onClick={closeCreateModal}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit(createManager)} className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <InputField label="Prénom *" {...register('firstname')} error={errors.firstname?.message} />
+                    <InputField label="Nom *" {...register('lastname')} error={errors.lastname?.message} />
+                    <InputField label="Email *" type="email" {...register('email')} error={errors.email?.message} className="md:col-span-2" />
+                    <InputField label="Téléphone" {...register('phone')} />
+                    <InputField label="Mot de passe *" type="password" {...register('password')} error={errors.password?.message} />
+                  </div>
+
+                  <div className="flex justify-end gap-4 pt-6">
+                    <button
+                      type="button"
+                      onClick={closeCreateModal}
+                      className="px-6 py-3 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                    >
+                      Annuler
+                    </button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl disabled:opacity-50 transition-all flex items-center gap-2"
+                    >
+                      {isSubmitting ? 'Création...' : 'Créer le Manager'}
+                    </motion.button>
+                  </div>
+                </form>
               </div>
-            </form>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Assign Modal */}
+      {/* MODALE ASSIGNATION */}
       <AnimatePresence>
         {selectedManager && (
           <motion.div
@@ -315,9 +357,9 @@ const { data: clinics = [] } = useSWR<Clinic[]>(
               </div>
 
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Manager :{' '}
-                <span className="font-medium">
-                  {selectedManager.firstname} {selectedManager.lastname}
+                Manager : <span className="font-medium">{selectedManager.firstname} {selectedManager.lastname}</span>
+                <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full ml-2">
+                  {selectedClinics.length} assignée{selectedClinics.length > 1 ? 's' : ''}
                 </span>
               </p>
 
@@ -335,13 +377,13 @@ const { data: clinics = [] } = useSWR<Clinic[]>(
                         <input
                           type="checkbox"
                           checked={selectedClinics.includes(c.id)}
-                          onChange={(e) =>
+                          onChange={() => {
                             setSelectedClinics((prev) =>
-                              e.target.checked
-                                ? [...prev, c.id]
-                                : prev.filter((id) => id !== c.id)
-                            )
-                          }
+                              prev.includes(c.id)
+                                ? prev.filter((id) => id !== c.id)
+                                : [...prev, c.id]
+                            );
+                          }}
                           className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                         />
                         <div>
@@ -355,10 +397,7 @@ const { data: clinics = [] } = useSWR<Clinic[]>(
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
-                <button
-                  onClick={() => setSelectedManager(null)}
-                  className="px-5 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
+                <button onClick={() => setSelectedManager(null)} className="px-5 py-2 border rounded-lg">
                   Annuler
                 </button>
                 <motion.button
@@ -375,33 +414,11 @@ const { data: clinics = [] } = useSWR<Clinic[]>(
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* List */}
-      {loadingManagers ? (
-        <LoadingGrid />
-      ) : filteredManagers.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <AnimatePresence>
-            {filteredManagers.map((manager) => (
-              <ManagerCard
-                key={manager.id}
-                manager={manager}
-                onAssign={() => setSelectedManager(manager)}
-                onDelete={() => deleteManager(manager.id)}
-              />
-            ))}
-          </AnimatePresence>
-        </motion.div>
-      )}
-    </div>
+    </>
   );
 }
 
-// ──────────────────────────────────────────────────────────────
-// Reusable Components
-// ──────────────────────────────────────────────────────────────
+/* Composants réutilisables (inchangés) */
 function InputField({
   label,
   error,
@@ -431,10 +448,7 @@ function LoadingGrid() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 animate-pulse"
-        >
+        <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 animate-pulse">
           <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3" />
           <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
         </div>
@@ -444,11 +458,7 @@ function LoadingGrid() {
 }
 
 function EmptyState() {
-  return (
-    <div className="text-center py-12 text-gray-500">
-      Aucun manager trouvé.
-    </div>
-  );
+  return <div className="text-center py-12 text-gray-500">Aucun manager trouvé.</div>;
 }
 
 function ManagerCard({
@@ -466,11 +476,11 @@ function ManagerCard({
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.95 }}
-      whileHover={{ 
-        y: -12, 
+      whileHover={{
+        y: -12,
         scale: 1.02,
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
-        transition: { duration: 0.3 }
+        transition: { duration: 0.3 },
       }}
       className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden transition-all duration-300"
     >
@@ -544,7 +554,7 @@ function ManagerCard({
               {new Date(manager.created_at).toLocaleDateString('fr-FR', {
                 day: 'numeric',
                 month: 'short',
-                year: '2-digit'
+                year: '2-digit',
               })}
             </span>
           </span>
@@ -557,4 +567,4 @@ function ManagerCard({
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
     </motion.div>
   );
-}
+} 

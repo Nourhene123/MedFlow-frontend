@@ -48,10 +48,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex">
       {/* === SIDEBAR === */}
       <motion.aside
-        initial={{ x: -300 }}
+       
+       initial={{ x: -300 }}
         animate={{ x: sidebarOpen ? 0 : 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className={`fixed md:relative z-50 w-64 h-screen bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 flex flex-col ${
+        className={`fixed md:relative z-50 w-64 h-100% bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 flex flex-col ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         } transition-transform duration-300`}
       >

@@ -58,7 +58,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
         initial={{ x: -300 }}
         animate={{ x: sidebarOpen ? 0 : 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className={`fixed md:relative z-50 w-64 h-screen bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 flex flex-col ${
+        className={`fixed md:relative z-50 w-64 h-100%  bg-white dark:bg-gray-800 shadow-2xl border-r border-gray-200 dark:border-gray-700 flex flex-col ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         } transition-transform duration-300`}
       >

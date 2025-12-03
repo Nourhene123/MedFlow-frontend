@@ -173,24 +173,37 @@ function AppointmentModal({ appointment, onClose, mutate, onCreateSuccess }: App
   };
 
   // === VÉRIFICATION DISPONIBILITÉ ===
-  const checkAvailability = async (doctorId: string, dateTime: string, duration: number = 30): Promise<boolean> => {
-    try {
-      const response = await fetch(
-        `${API_BASE}appointments/check-availability/?doctor_id=${doctorId}&date_time=${dateTime}&duration=${duration}`,
-        {
-          headers: { Authorization: `Bearer ${session?.accessToken}` },
-        }
-      );
-      if (!response.ok) {
-        throw new Error('Erreur lors de la vérification de disponibilité');
+const checkAvailability = async (doctorId: string, dateTime: string, duration: number = 30): Promise<boolean> => {
+  try {
+    const response = await fetch(
+      `${API_BASE}appointments/check-availability/?doctor_id=${doctorId}&date_time=${dateTime}&duration=${duration}`,
+      {
+        headers: { 
+          'Authorization': `Bearer ${session?.accessToken}`,
+          'Content-Type': 'application/json'
+        },
       }
-      const data = await response.json();
-      return data.available === true;
-    } catch (error) {
-      console.error('Erreur vérification disponibilité:', error);
-      return false;
+    );
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = typeof errorData === 'object' && errorData !== null && 'error' in errorData
+        ? String(errorData.error)
+        : 'Erreur lors de la vérification de disponibilité';
+      throw new Error(errorMessage);
     }
-  };
+    
+    const data = await response.json();
+    return Boolean(data.available);
+  } catch (error) {
+    console.error('Erreur vérification disponibilité:', error);
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Erreur inconnue lors de la vérification de disponibilité';
+    toast.error(errorMessage);
+    return false;
+  }
+};
 
   // === VALIDATION ===
   const validate = async () => {
