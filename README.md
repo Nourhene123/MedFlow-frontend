@@ -22,6 +22,7 @@
 ## 👥 Team & Methodology
 
 **Developed collaboratively by:**
+-**Nourhene Ferchichi**:Full-stack Developer
 - **Malak Benhassine** — Frontend Engineer
 - **Jesser Mdimegh** — Full-Stack Developer
 - **Badii Msalmi** — Backend & DevOps Lead
