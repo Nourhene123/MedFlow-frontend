@@ -1,104 +1,186 @@
-```bash
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-```# MedFlow Frontend
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-15.5.5-black?logo=next.js&logoColor=white" alt="Next.js" />
+  <img src="https://img.shields.io/badge/React-19.1.0-61DAFB?logo=react&logoColor=white" alt="React" />
+  <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Tailwind-v4-38B2AC?logo=tailwindcss&logoColor=white" alt="TailwindCSS" />
+  <img src="https://img.shields.io/badge/NextAuth-v4-000000?logo=next.js&logoColor=white" alt="NextAuth" />
+</p>
 
- Developed together with me and  my colleagues — **Malak Benhassine**, **Jesser Mdimegh**, and **Badii Msalmi** — applying Agile methodology (Scrum) for iterative development and real-time feedback integration.
+<h1 align="center">MedFlow Frontend</h1>
 
-## About MedFlow
+<p align="center">
+  <strong>Modern Healthcare SaaS Platform — Next.js 15 + React 19</strong>
+</p>
 
-Today, everything is going digital: banking, commerce, education... Private healthcare in Tunisia is now making the same leap.
-
-**MedFlow** is a modern, secure, and intelligent **SaaS platform** designed to help private clinics fully transition into the digital era — ending paper files, endless phone calls, and unreadable prescriptions.
-
-### What MedFlow Delivers
-
-- **Real-time appointment management** — Appointments created instantly in the doctor's agenda; receptionists check availability in one click; online booking, modification, and cancellation
-- **Complete patient management** — Medical records, consultation history, diagnoses, treatments; automatic PDF delivery of prescriptions and invoices
-- **Billing & payments** — Invoice management with cash or online payments via Stripe
-
-### Role-Based Access (Multi-Tenant & Secure)
-
-| Role | Capabilities |
-|------|-------------|
-| **Administrator** | Manage multiple clinics and assign managers |
-| **Clinic Manager** | Full control over clinic data, doctors, receptionists, and patients |
-| **Receptionist** | Manage appointments and patient flow |
-| **Patient Portal** | Book appointments, pay online, download prescriptions, access medical history |
-| **Doctor Workspace** | Access patient records, schedule consultations, write prescriptions, AI-powered diagnostic suggestions |
-
-### Real-Time Communication
-
-- **WebSockets** with Django Channels / Daphne
-- **Redis** as the channel layer for pub/sub messaging
-- Instant updates for appointments, notifications, and patient flow
-
-### Technology & Architecture
-
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | Next.js 15, React 19, TypeScript, TailwindCSS v4 |
-| **Backend** | Django 5, Django REST Framework |
-| **Database** | PostgreSQL |
-| **State & Cache** | Redis, TanStack Query |
-| **Payments** | Stripe |
-| **Versioning** | Git / GitLab |
-| **Architecture** | 3-tier SaaS with multi-clinic isolation |
-| **DevOps** | Docker, Kubernetes, Amazon EKS, Terraform |
-| **CI/CD** | Automated GitLab pipelines |
-
-### What Makes MedFlow Different
-
-- Full multi-clinic isolation
-- End-to-end digitalization of clinical workflows
-- Secure, scalable SaaS architecture
-- Real-time updates across the platform for all users
+<p align="center">
+  A comprehensive healthcare management system built with <strong>Next.js 15</strong>, <strong>React 19</strong>, and <strong>TypeScript</strong>.
+  Seamlessly integrates with the MedFlow Django backend to provide a modern, responsive interface for clinics, doctors, receptionists, and patients.
+</p>
 
 ---
 
-This is the frontend application for **MedFlow**, a comprehensive healthcare management system. It provides a modern, responsive web interface for managing clinics, appointments, patients, billing, and AI-powered medical assistance.
+## 👥 Team & Methodology
 
-## Overview
+**Developed collaboratively by:**
+- **Malak Benhassine** — Frontend Engineer
+- **Jesser Mdimegh** — Full-Stack Developer
+- **Badii Msalmi** — Backend & DevOps Lead
 
-MedFlow Frontend is built with **Next.js 15** and **React 19**, delivering a high-performance, SEO-friendly single-page application. It integrates seamlessly with the MedFlow Django backend API.
+**Methodology:** Agile (Scrum) — Iterative development with real-time feedback integration and bi-weekly sprints.
 
-## Project Structure
+---
+
+## 🏥 About MedFlow
+
+> *"Digitalizing private healthcare in Tunisia, one clinic at a time."*
+
+**MedFlow** is a secure, scalable **SaaS platform** designed to help private clinics transition into the digital era. It eliminates paper files, phone call chaos, and manual prescription management.
+
+### Key Capabilities
+
+| Feature | Description |
+|---------|-------------|
+| **Real-time Appointments** | Instant scheduling in doctor's agenda; online booking with WebSocket updates |
+| **Patient Management** | Digital medical records, consultation history, diagnoses & treatments |
+| **Billing & Payments** | Invoice management with Stripe integration for online payments |
+| **AI Diagnostics** | AI-powered diagnostic suggestions for doctors |
+| **PDF Generation** | Automatic prescriptions & invoices delivered as PDFs |
+
+---
+
+## 🏗️ Architecture Overview
 
 ```
-frontend-medflow/
-└── med-flow-frontend/          # Main Next.js application
-    ├── src/                    # Source code (pages, components, hooks)
-    ├── public/                 # Static assets
-    ├── k8s/                    # Kubernetes deployment configs
-    ├── .env.local              # Local environment variables
-    ├── .env.prod               # Production environment variables
-    ├── Dockerfile              # Container configuration
-    └── package.json            # Dependencies & scripts
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         MedFlow Frontend                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
+│  │   Admin      │  │   Doctor     │  │   Manager    │  │ Receptionist │ │
+│  │  Dashboard   │  │   Workspace  │  │   Console    │  │    Portal    │ │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘ │
+│  ┌─────────────────────────────────────────────────────────────────────┐│
+│  │                     Patient Portal                                   ││
+│  │    Book Appointments • Pay Online • Medical History • Prescriptions ││
+│  └─────────────────────────────────────────────────────────────────────┘│
+├─────────────────────────────────────────────────────────────────────────┤
+│  🔐 NextAuth.js + JWT • 🎨 TailwindCSS + shadcn/ui • ⚡ WebSockets     │
+└─────────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                    ┌─────────────────────┐
+                    │  MedFlow Django API │
+                    │   (Backend Layer)   │
+                    └─────────────────────┘
 ```
 
-## Tech Stack
+---
 
-- **Framework**: [Next.js 15.5.5](https://nextjs.org/) with App Router
-- **UI Library**: [React 19.1.0](https://react.dev/)
-- **Language**: [TypeScript 5](https://www.typescriptlang.org/)
-- **Styling**: [TailwindCSS v4](https://tailwindcss.com/) + [tw-animate-css](https://github.com/Wombosvideo/tw-animate-css)
-- **UI Components**: [shadcn/ui](https://ui.shadcn.com/) (Radix UI primitives)
-- **Authentication**: [NextAuth.js v4](https://next-auth.js.org/)
-- **State Management**: [TanStack Query (React Query)](https://tanstack.com/query)
-- **Form Handling**: [React Hook Form](https://react-hook-form.com/) + [Zod](https://zod.dev/) validation
-- **Calendar**: [FullCalendar](https://fullcalendar.io/)
-- **Payments**: [Stripe React](https://stripe.com/docs/stripe-js/react)
-- **Real-time**: [Socket.io Client](https://socket.io/docs/v4/client-api/)
-- **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **PDF Generation**: [jsPDF](https://github.com/parallax/jsPDF) + [html2canvas](https://html2canvas.hertzen.com/)
-- **Monitoring**: [Prometheus Client](https://github.com/siimon/prom-client)
+## 🎯 Role-Based Access Control (RBAC)
 
-## Getting Started
+| Role | Access Level | Key Pages |
+|------|--------------|-----------|
+| **Administrator** | Super Admin — Multi-clinic management | `/admin/*` — Clinics, Managers, Global settings |
+| **Clinic Manager** | Full clinic control | `/manager/*` — Doctors, Receptionists, Patients, Dashboard |
+| **Doctor** | Medical workspace | `/doctor/*` — Agenda, Consultations, Patients, Prescriptions |
+| **Receptionist** | Front desk operations | `/receptionist/*` — Appointments, Billing, Patient registration |
+| **Patient** | Self-service portal | `/patient/*` — Appointments, Doctors, Billing, Medical records |
+
+---
+
+## 🛠️ Tech Stack
+
+### Core Framework
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Next.js** | 15.5.5 | App Router, SSR/SSG, API Routes |
+| **React** | 19.1.0 | Component library with concurrent features |
+| **TypeScript** | 5.0 | Type-safe development |
+| **TailwindCSS** | v4 | Utility-first styling |
+
+### Authentication & State
+| Technology | Purpose |
+|------------|---------|
+| **NextAuth.js v4** | JWT-based authentication with Django backend |
+| **TanStack Query** | Server state management, caching, synchronization |
+| **React Hook Form + Zod** | Type-safe form handling & validation |
+
+### UI & Components
+| Technology | Purpose |
+|------------|---------|
+| **shadcn/ui** | Accessible Radix UI primitives |
+| **Framer Motion** | Smooth animations & transitions |
+| **Lucide React** | Modern icon library |
+| **next-themes** | Dark/light mode support |
+
+### Domain-Specific
+| Technology | Purpose |
+|------------|---------|
+| **FullCalendar** | Doctor's agenda & appointment scheduling |
+| **Stripe React** | Secure payment processing |
+| **Socket.io Client** | Real-time notifications & updates |
+| **jsPDF + html2canvas** | PDF generation for prescriptions & invoices |
+| **Prometheus Client** | Application metrics & monitoring |
+
+---
+
+## 📁 Project Structure
+
+```
+med-flow-frontend/
+├── src/
+│   ├── app/                          # Next.js 15 App Router
+│   │   ├── admin/                    # Admin portal (RBAC protected)
+│   │   │   ├── clinics/page.tsx      # Multi-clinic management
+│   │   │   ├── managers/page.tsx     # Manager assignment
+│   │   │   └── layout.tsx            # Admin shell
+│   │   ├── doctor/                   # Doctor workspace
+│   │   │   ├── agenda/page.tsx       # Calendar view (FullCalendar)
+│   │   │   ├── consultations/        # Consultation management
+│   │   │   ├── patients/             # Patient records
+│   │   │   ├── ordonnances/page.tsx  # Prescriptions
+│   │   │   └── layout.tsx            # Doctor shell
+│   │   ├── manager/                  # Clinic Manager console
+│   │   │   ├── dashboard/page.tsx    # Analytics & overview
+│   │   │   ├── doctors/page.tsx      # Doctor management
+│   │   │   └── receptionist/page.tsx # Receptionist management
+│   │   ├── receptionist/             # Front desk interface
+│   │   │   ├── appointments/page.tsx # Appointment management
+│   │   │   ├── billing/              # Invoicing & payments
+│   │   │   └── patients/             # Patient registration
+│   │   ├── patient/                  # Patient self-service portal
+│   │   │   ├── dashboard/page.tsx    # Personal health dashboard
+│   │   │   ├── appointments/page.tsx   # Booking & management
+│   │   │   ├── doctors/page.tsx      # Doctor directory
+│   │   │   └── components/           # Reusable patient UI
+│   │   ├── api/auth/                 # NextAuth configuration
+│   │   │   ├── [...nextauth]/route.ts # API endpoint
+│   │   │   └── NextAuthConfig.ts     # JWT + Credentials provider
+│   │   ├── login/page.tsx            # Login page
+│   │   ├── unauthorized/page.tsx     # 403 access denied
+│   │   ├── layout.tsx                # Root layout
+│   │   └── globals.css               # Tailwind + custom styles
+│   ├── components/                   # Shared React components
+│   │   └── ui/                       # shadcn/ui components
+│   ├── hooks/                        # Custom React hooks
+│   ├── lib/                          # Utilities & helpers
+│   ├── types/                        # TypeScript definitions
+│   └── middleware.ts                 # RBAC route protection
+├── k8s/                              # Kubernetes manifests
+├── public/                           # Static assets
+├── .env.local                        # Local environment
+├── .env.prod                         # Production environment
+├── Dockerfile                        # Container image
+└── package.json                      # Dependencies
+```
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-
-- [Node.js](https://nodejs.org/) 18+ 
-- npm or yarn
-- Running MedFlow backend API
+- **Node.js** 18+
+- **npm** or **yarn**
+- Running [MedFlow Django backend](../backend-medflow/)
 
 ### Installation
 
@@ -107,185 +189,175 @@ cd med-flow-frontend
 npm install
 ```
 
-### Environment Setup
+### Environment Configuration
 
-Create a `.env.local` file:
+Create `.env.local`:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-NEXTAUTH_SECRET=your_secret_here
+# Backend API
+BACKEND_URL=http://localhost:8000
+
+# NextAuth Configuration
 NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_secure_random_secret
+
+# Stripe (for payments)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+```
+
+Generate a secure secret:
+```bash
+npx auth secret
 ```
 
 ### Development
 
 ```bash
-# Start development server with Turbopack
+# Start with Turbopack (fast HMR)
 npm run dev
-```
 
-The app will be available at [http://localhost:3000](http://localhost:3000).
-
-### Build & Production
-
-```bash
-# Create production build
+# Or for production testing
 npm run build
-
-# Start production server
 npm start
-
-# Run ESLint
-npm run lint
 ```
 
-## Key Features
+App runs at `http://localhost:3000`
 
-- **Authentication**: JWT-based auth with role-based access control
-- **Appointment Management**: Calendar view with drag-and-drop scheduling
-- **Patient Records**: Digital medical records and history
-- **Billing & Invoicing**: Integrated with Stripe for payments
-- **AI Assistant**: Medical AI chat interface
-- **Real-time Updates**: WebSocket integration for live notifications
-- **PDF Reports**: Generate medical reports and invoices
-- **Responsive Design**: Mobile-first approach
-- **Dark Mode**: Theme switching support
+---
 
-## Docker
+## 🔐 How Authentication Works
+
+### 1. Login Flow
+
+```
+User → /login page → signIn() → authorize() → Django /api/accounts/login/
+                                                          │
+                                                          ▼
+User ← JWT Token + Profile ←─── 200 OK (user + access token)
+```
+
+The `authorize()` function in `NextAuthConfig.ts`:
+- Sends credentials to Django REST API
+- Receives JWT tokens + user profile
+- Returns enriched user object with role
+
+### 2. Session & JWT Strategy
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   JWT       │────▶│   Session   │────▶│ useSession  │
+│   Callback  │     │   Callback  │     │   Hook      │
+└─────────────┘     └─────────────┘     └─────────────┘
+      │                   │                   │
+      ▼                   ▼                   ▼
+ Stores:               Exposes:            Access in
+ - id                   - user.id            components
+ - email                - user.email
+ - firstname            - user.firstname
+ - lastname             - user.lastname
+ - role                 - user.role          ← RBAC key
+ - accessToken          - accessToken
+```
+
+### 3. Route Protection (Middleware)
+
+`middleware.ts` enforces role-based access:
+
+```typescript
+// Route-to-Role Mapping
+/admin/*       → requires role === "ADMIN"
+/doctor/*      → requires role === "DOCTOR"
+/manager/*     → requires role === "MANAGER"
+/receptionist/* → requires role === "RECEPTIONIST"
+/patient/*     → requires role === "PATIENT"
+```
+
+**Security Features:**
+- ✅ Encrypted JWT cookies (httpOnly)
+- ✅ No localStorage token storage
+- ✅ Automatic token refresh
+- ✅ Role-based redirects to `/unauthorized`
+
+---
+
+## 📊 Key Features Explained
+
+### 🗓️ Appointment Management
+- **FullCalendar integration** for drag-and-drop scheduling
+- **WebSocket updates** — appointments appear in real-time across all users
+- **Multi-clinic isolation** — doctors only see their clinic's agenda
+
+### 📄 PDF Generation
+- **Prescriptions** — Doctors create, patients download
+- **Invoices** — Auto-generated with Stripe payment links
+- Uses `jsPDF` + `html2canvas` for client-side generation
+
+### 💳 Billing & Stripe
+- Secure payment forms via `@stripe/react-stripe-js`
+- Webhook handling for payment confirmations
+- Invoice status tracking (paid/pending/overdue)
+
+### 🔴 Real-Time Updates
+- **Socket.io** connection to Django Channels
+- Live notifications for:
+  - New appointments
+  - Patient check-ins
+  - Payment confirmations
+  - System alerts
+
+---
+
+## 🐳 Docker
 
 ```bash
+# Build image
 docker build -t medflow-frontend .
-docker run -p 3000:3000 medflow-frontend
-```
 
-## Kubernetes
-
-Deployment configs are available in the `k8s/` directory.
-
-## API Integration
-
-The frontend communicates with the MedFlow Django backend at `/api`. See the [Backend README](../backend-medflow/) for API documentation.
-
-## Related Projects
-
-- [MedFlow Backend](../backend-medflow/) - Django REST API
-
-
-## 🚀 Getting Started
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## 🔐 Authentication Workflow
-
-This project integrates **NextAuth** with a **Django REST API** for authentication, session management, and role-based access control.
-
-### 🧩 1. Login Process
-
-```bash
-User → Login Page (/login) → signIn() → authorize() → Django API
-```
-
-- The user fills out the login form.  
-- The `signIn()` method (provided by **NextAuth**) sends credentials to the backend.  
-- The `authorize()` function in `NextAuthConfig.tsx` sends a POST request to:
-  ```bash
-  /api/accounts/login/
-  ```
-- If Django validates the credentials, it returns user data and a JWT token.
-
----
-
-### 🧠 2. Session & JWT Callbacks
-
-```bash
-NextAuth → jwt callback → session callback → Available in useSession()
-```
-
-- The `jwt` callback stores extra user data (like `role`, `id`, `accessToken`) inside the token.  
-- The `session` callback exposes these values in the client session.  
-- You can access session data anywhere with:
-  ```ts
-  import { useSession } from "next-auth/react";
-  const { data: session } = useSession();
-  console.log(session?.user);
-  ```
-
----
-
-### 🛡️ 3. Route Protection
-
-Protected routes (e.g. `/admin/dashboard`) are handled through `middleware.ts`.
-
-- If the user is **not authenticated**, they are redirected to `/login`.  
-- Role-based logic ensures users only access authorized pages.  
-  Example:
-  ```bash
-  Admin → /admin/dashboard
-  Doctor → /doctor/dashboard
-  Patient → /patient/profile
-  ```
-
----
-
-## 📁 Key Files Overview
-
-```bash
-src/app/api/auth/NextAuthConfig.tsx   # Handles login logic and token creation
-src/middleware.ts                     # Protects routes and manages role-based redirection
-src/app/login/page.tsx                # Login page UI and signIn() handler
-src/app/admin/dashboard/page.tsx      # Example of a protected route for admins
+# Run container
+docker run -p 3000:3000 \
+  -e BACKEND_URL=http://host.docker.internal:8000 \
+  -e NEXTAUTH_SECRET=your_secret \
+  medflow-frontend
 ```
 
 ---
 
-## ⚙️ Environment Variables
+## ☸️ Kubernetes
 
-Create a `.env.local` file:
-
-```bash
-BACKEND_URL=http://127.0.0.1:8000
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your_generated_secret
-```
-
-Generate a secure secret with:
+Deployment configurations in `k8s/`:
 
 ```bash
-npx auth secret
+kubectl apply -f k8s/
 ```
+
+Includes:
+- Deployment with health checks
+- Service (LoadBalancer/ClusterIP)
+- ConfigMap for environment variables
+- Horizontal Pod Autoscaler (HPA)
 
 ---
 
-## 🧾 Summary
+## 🔗 Related Projects
 
-```bash
-✅ Secure login using Django backend
-✅ JWT-based session management via NextAuth
-✅ Role-based route protection with middleware
-✅ No localStorage – uses encrypted cookies
-✅ Easy session access with useSession()
-```
+| Project | Description | Tech |
+|---------|-------------|------|
+| [MedFlow Backend](../backend-medflow/) | Django REST API + WebSockets | Django 5, DRF, Channels, PostgreSQL, Redis |
+| Infrastructure | Terraform + EKS | AWS, Kubernetes, Terraform |
 
 ---
 
-## 📚 Learn More
+## 📚 Documentation
 
-```bash
-Next.js Docs:        https://nextjs.org/docs
-NextAuth.js Docs:    https://next-auth.js.org
-Django REST Framework: https://www.django-rest-framework.org
-```
-````
+- [Next.js Docs](https://nextjs.org/docs)
+- [NextAuth.js](https://next-auth.js.org)
+- [Django REST Framework](https://www.django-rest-framework.org)
+- [TailwindCSS](https://tailwindcss.com)
+- [shadcn/ui](https://ui.shadcn.com)
+
+---
+
+<p align="center">
+  <strong>Built with ❤️ in Tunisia</strong>
+</p>
+
